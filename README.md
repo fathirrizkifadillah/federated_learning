@@ -1,143 +1,143 @@
-# Federated Personalized Product Recommendation System
+# Sistem Rekomendasi Produk Personal Berbasis Federated Learning
 
-A research-oriented implementation of a privacy-preserving product recommendation system using Federated Learning and Amazon Reviews 2023.
+Implementasi berorientasi riset untuk sistem rekomendasi produk yang menjaga privasi, menggunakan Federated Learning dan Amazon Reviews 2023.
 
-## Overview
+## Gambaran Umum
 
-This project explores the implementation of a personalized product recommendation system using **Federated Learning (FL)**.
+Proyek ini mengeksplorasi implementasi sistem rekomendasi produk personal menggunakan **Federated Learning (FL)**.
 
-Traditional recommendation systems typically collect user interaction data in a centralized environment to train a global model. While this approach can be effective, it introduces challenges related to data privacy, data ownership, and centralized data management.
+Sistem rekomendasi tradisional umumnya mengumpulkan data interaksi pengguna di lingkungan terpusat untuk melatih sebuah model global. Meskipun pendekatan ini efektif, ia menimbulkan tantangan terkait privasi data, kepemilikan data, dan pengelolaan data yang terpusat.
 
-Federated Learning offers an alternative approach. Instead of transferring raw user interaction data to a central server, individual clients train models locally and share model updates for global aggregation.
+Federated Learning menawarkan pendekatan alternatif. Alih-alih mengirimkan data mentah interaksi pengguna ke server pusat, masing-masing klien melatih model secara lokal dan hanya membagikan pembaruan model untuk diagregasi secara global.
 
-The objective of this project is to investigate how Federated Learning can support personalized product recommendations while maintaining decentralized data storage.
+Tujuan proyek ini adalah menyelidiki bagaimana Federated Learning dapat mendukung rekomendasi produk yang personal sambil tetap menjaga penyimpanan data yang terdesentralisasi.
 
-## Research Objectives
+## Tujuan Penelitian
 
-The project focuses on the following objectives:
+Proyek ini berfokus pada tujuan-tujuan berikut:
 
-- Implement a product recommendation model using user-item interaction data.
-- Apply Federated Learning to train recommendation models across multiple clients.
-- Investigate the impact of non-IID data distribution on federated recommendation performance.
-- Compare centralized and federated training approaches.
-- Evaluate recommendation quality, communication overhead, and personalization performance.
-- Explore privacy-enhancing techniques for federated recommendation systems.
+- Mengimplementasikan model rekomendasi produk menggunakan data interaksi pengguna-item.
+- Menerapkan Federated Learning untuk melatih model rekomendasi di banyak klien.
+- Menyelidiki dampak distribusi data non-IID terhadap performa rekomendasi federated.
+- Membandingkan pendekatan pelatihan terpusat (centralized) dan federated.
+- Mengevaluasi kualitas rekomendasi, beban komunikasi, dan performa personalisasi.
+- Mengeksplorasi teknik peningkat privasi untuk sistem rekomendasi federated.
 
 ## Dataset
 
 **Amazon Reviews 2023**
 
-The project uses the Amazon Reviews 2023 dataset released by the McAuley Lab at the University of California, San Diego.
+Proyek ini menggunakan dataset Amazon Reviews 2023 yang dirilis oleh McAuley Lab di University of California, San Diego.
 
-The dataset contains large-scale user reviews, product ratings, timestamps, and product metadata across multiple product categories.
+Dataset ini berisi ulasan pengguna berskala besar, rating produk, stempel waktu (timestamp), dan metadata produk dari berbagai kategori produk.
 
-Dataset source:
+Sumber dataset:
 
-- [Amazon Reviews 2023 — Official Dataset](https://amazon-reviews-2023.github.io/)
+- [Amazon Reviews 2023 — Dataset Resmi](https://amazon-reviews-2023.github.io/)
 
-For computational efficiency, the project will initially focus on a selected product category rather than processing the entire dataset.
+Demi efisiensi komputasi, pada tahap awal proyek ini akan difokuskan pada satu kategori produk terpilih, bukan memproses seluruh dataset.
 
-The selected data will be filtered and transformed into user-item interactions for recommendation model training.
+Data yang dipilih akan difilter dan ditransformasi menjadi interaksi pengguna-item untuk pelatihan model rekomendasi.
 
-## System Architecture
+## Arsitektur Sistem
 
-The system follows a federated client-server architecture.
+Sistem mengikuti arsitektur federated client-server.
 
 ```text
-                  Federated Server
+                  Server Federated
                          |
-              Global Model Aggregation
+                Agregasi Model Global
                          |
-             Model Parameters / Updates
+            Parameter Model / Pembaruan
                          |
           +--------------+--------------+
           |              |              |
-       Client 1       Client 2       Client N
+       Klien 1        Klien 2        Klien N
           |              |              |
-      Local Data     Local Data     Local Data
+      Data Lokal     Data Lokal     Data Lokal
           |              |              |
-      Local Model    Local Model    Local Model
+      Model Lokal    Model Lokal    Model Lokal
           |              |              |
-      Local Train    Local Train    Local Train
+     Latih Lokal    Latih Lokal    Latih Lokal
           |              |              |
           +--------------+--------------+
                          |
-                  Model Updates
+                 Pembaruan Model
                          |
-                  Federated Server
+                  Server Federated
 ```
 
-### Core Components
+### Komponen Inti
 
-**1. Data Processing**
+**1. Pemrosesan Data**
 
-- Dataset loading and exploration.
-- Data cleaning and filtering.
-- User-item interaction construction.
-- Client data partitioning.
-- Training, validation, and test preparation.
+- Pemuatan dan eksplorasi dataset.
+- Pembersihan dan pemfilteran data.
+- Pembentukan interaksi pengguna-item.
+- Pemartisian data klien.
+- Persiapan data latih, validasi, dan uji.
 
-**2. Recommendation Model**
+**2. Model Rekomendasi**
 
-The initial recommendation model will use Matrix Factorization with Bayesian Personalized Ranking (BPR).
+Model rekomendasi awal akan menggunakan Matrix Factorization dengan Bayesian Personalized Ranking (BPR).
 
-The model learns latent representations of users and products to estimate user preferences and rank relevant products.
+Model mempelajari representasi laten dari pengguna dan produk untuk memperkirakan preferensi pengguna serta meranking produk yang relevan.
 
 **3. Federated Learning**
 
-Multiple clients train recommendation models using their respective local datasets.
+Banyak klien melatih model rekomendasi menggunakan dataset lokal masing-masing.
 
-The central server aggregates model updates using Federated Averaging (FedAvg).
+Server pusat mengagregasi pembaruan model menggunakan Federated Averaging (FedAvg).
 
-Additional federated optimization and personalization strategies will be explored in subsequent experiments.
+Strategi optimasi federated dan personalisasi tambahan akan dieksplorasi pada eksperimen-eksperimen berikutnya.
 
-**4. Evaluation**
+**4. Evaluasi**
 
-The system will be evaluated using recommendation quality metrics and federated learning performance measurements.
+Sistem akan dievaluasi menggunakan metrik kualitas rekomendasi dan pengukuran performa federated learning.
 
-## Technology Stack
+## Teknologi yang Digunakan
 
-| Technology | Purpose |
+| Teknologi | Kegunaan |
 |---|---|
-| Python | Main programming language |
-| PyTorch | Deep learning and recommendation models |
-| Flower | Federated Learning framework |
-| Pandas | Data processing |
-| NumPy | Numerical computation |
-| scikit-learn | Data preprocessing and utilities |
-| Matplotlib | Data visualization |
-| Streamlit | Experimental dashboard |
-| Docker | Experiment environment management |
-| Git | Version control |
+| Python | Bahasa pemrograman utama |
+| PyTorch | Deep learning dan model rekomendasi |
+| Flower | Framework Federated Learning |
+| Pandas | Pemrosesan data |
+| NumPy | Komputasi numerik |
+| scikit-learn | Prapemrosesan data dan utilitas |
+| Matplotlib | Visualisasi data |
+| Streamlit | Dashboard eksperimental |
+| Docker | Pengelolaan lingkungan eksperimen |
+| Git | Kontrol versi |
 
-## Planned Experiments
+## Eksperimen yang Direncanakan
 
-The following experiments are planned:
+Eksperimen berikut direncanakan:
 
-| Experiment | Description |
+| Eksperimen | Deskripsi |
 |---|---|
-| Centralized Training | Train a recommendation model using centralized data |
-| Local-only Training | Train independent models on individual clients |
-| FedAvg | Federated training using Federated Averaging |
-| FedProx | Federated optimization under heterogeneous data |
-| Personalized FL | Investigate personalization strategies |
+| Pelatihan Terpusat | Melatih model rekomendasi menggunakan data terpusat |
+| Pelatihan Lokal Saja | Melatih model independen pada masing-masing klien |
+| FedAvg | Pelatihan federated menggunakan Federated Averaging |
+| FedProx | Optimasi federated pada data yang heterogen |
+| Personalized FL | Menyelidiki strategi personalisasi |
 
-The experiments will examine both IID and non-IID data distributions.
+Eksperimen akan menguji distribusi data IID maupun non-IID.
 
-### Evaluation Metrics
+### Metrik Evaluasi
 
-**Recommendation Metrics**
+**Metrik Rekomendasi**
 - Recall@K
 - NDCG@K
 - Hit Rate@K
 
-**Federated Learning Metrics**
-- Training time
-- Communication cost
-- Convergence behavior
-- Performance across clients
+**Metrik Federated Learning**
+- Waktu pelatihan
+- Biaya komunikasi
+- Perilaku konvergensi
+- Performa di seluruh klien
 
-## Project Structure
+## Struktur Proyek
 
 ```text
 federated-recommender/
@@ -163,41 +163,41 @@ federated-recommender/
 └── README.md
 ```
 
-The directory structure may evolve as the implementation progresses.
+Struktur direktori dapat berubah seiring berjalannya implementasi.
 
-## Development Status
+## Status Pengembangan
 
 <pre>
-[ ] Dataset acquisition and exploration
-[ ] Data preprocessing
-[ ] Centralized recommendation baseline
-[ ] Federated client implementation
-[ ] FedAvg implementation
-[ ] Non-IID experiments
-[ ] FedProx implementation
+[ ] Akuisisi dan eksplorasi dataset
+[ ] Prapemrosesan data
+[ ] Baseline rekomendasi terpusat
+[ ] Implementasi klien federated
+[ ] Implementasi FedAvg
+[ ] Eksperimen non-IID
+[ ] Implementasi FedProx
 [ ] Personalized Federated Learning
-[ ] Performance evaluation
-[ ] Experimental dashboard
-[ ] Documentation and final analysis
+[ ] Evaluasi performa
+[ ] Dashboard eksperimental
+[ ] Dokumentasi dan analisis akhir
 </pre>
 
-This project is currently in the planning and initial development stage. The architecture, experimental configurations, and implementation details may change as the research progresses.
+Proyek ini saat ini berada pada tahap perencanaan dan pengembangan awal. Arsitektur, konfigurasi eksperimen, dan detail implementasi dapat berubah seiring kemajuan riset.
 
-## Research Scope
+## Ruang Lingkup Riset
 
-The primary focus is on the intersection of:
+Fokus utama berada pada irisan dari:
 
-- Recommender Systems
+- Sistem Rekomendasi (Recommender Systems)
 - Federated Learning
-- Distributed Optimization
-- Personalized Machine Learning
-- Privacy-Preserving Machine Learning
+- Optimasi Terdistribusi
+- Machine Learning Personal
+- Machine Learning yang Menjaga Privasi
 
-The project is intended as an experimental research implementation, not a production-ready recommendation service.
+Proyek ini dimaksudkan sebagai implementasi riset eksperimental, bukan layanan rekomendasi siap produksi.
 
 ---
 
-**Project:** Federated Personalized Product Recommendation System  
+**Proyek:** Sistem Rekomendasi Produk Personal Berbasis Federated Learning  
 **Dataset:** Amazon Reviews 2023  
 **Framework:** PyTorch + Flower  
-**Status:** In Development
+**Status:** Dalam Pengembangan
