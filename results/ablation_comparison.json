@@ -1,0 +1,8 @@
+{
+  "baseline_score": 0.14264516760734794,
+  "candidate_score": 0.08618787116980071,
+  "min_lift": 0.05,
+  "latency_ratio": 1.25,
+  "max_latency_ratio": 3.0,
+  "seeds_evaluated": 3
+}
