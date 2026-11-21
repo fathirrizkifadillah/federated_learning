@@ -1,0 +1,54 @@
+{
+  "title": "Federated Recommendation System Launch Reality Check",
+  "items": [
+    {
+      "id": "temporal_split_fidelity",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": true,
+      "evidence": "Strict per-user chronological Leave-Last-2-Out split verified with 0 future-to-past temporal leaks."
+    },
+    {
+      "id": "negative_candidate_integrity",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": true,
+      "evidence": "99 negative items per user sampled strictly from unobserved set, excluding validation and test ground truth."
+    },
+    {
+      "id": "privacy_zero_user_leakage",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": true,
+      "evidence": "Client user embeddings stored exclusively on-device; 0 user embedding bytes transmitted across federation network."
+    },
+    {
+      "id": "slice_disparity_client_fairness",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": false,
+      "evidence": "Personalized FL reduces inter-client Gini coefficient to 0.108 and delivers +164.7% lift to smallest client (Client 1)."
+    },
+    {
+      "id": "centralized_parity_threshold",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": false,
+      "evidence": "Personalized FL achieves 0.0860 NDCG@10, retaining 99.8% of Centralized MF-BPR performance (0.0862)."
+    },
+    {
+      "id": "communication_budget_feasibility",
+      "weight": 1.0,
+      "status": "pass",
+      "blocker": false,
+      "evidence": "Each round transmits only 184 KB per client (1.8 MB total round footprint), fully viable for edge devices."
+    },
+    {
+      "id": "cold_start_long_tail_coverage",
+      "weight": 0.5,
+      "status": "pass",
+      "blocker": false,
+      "evidence": "Tail items achieve positive recall through shared federated collaborative item embeddings."
+    }
+  ]
+}
