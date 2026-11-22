@@ -43,3 +43,4 @@ data/raw/
 *.bin
 *.onnx
 !results/models/*.pt
+*.tsbuildinfo
