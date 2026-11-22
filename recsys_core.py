@@ -201,6 +201,14 @@ def compute_recall_at_k(rank: Union[int, float], k: int = 10) -> float:
 def compute_hit_at_k(rank: Union[int, float], k: int = 10) -> float:
     r"""Computes Hit Rate at rank cut-off K (identical to Recall@K for single-positive evaluation).
 
+    Mathematical Formulation:
+    .. math::
+        \text{Hit}@K = \mathbb{I}(\text{rank} \le K) =
+        \begin{cases}
+            1.0, & \text{if } 1 \le \text{rank} \le K \\
+            0.0, & \text{otherwise}
+        \end{cases}
+
     Args:
         rank: 1-indexed rank position of the positive test item.
         k: Ranking truncation threshold K.
@@ -218,7 +226,7 @@ def compute_mrr(rank: Union[int, float]) -> float:
     .. math::
         \text{MRR} =
         \begin{cases}
-            \frac{1}{\text{rank}}, & \text{if } \text{rank} < \infty \\
+            \frac{1}{\text{rank}}, & \text{if } 1 \le \text{rank} < \infty \\
             0.0, & \text{if item not ranked}
         \end{cases}
 
@@ -238,7 +246,12 @@ def compute_ranking_metrics_for_user(
     ground_truth_item_id: Union[int, str],
     k_list: Sequence[int] = (5, 10),
 ) -> Dict[str, float]:
-    """Computes HitRate@K, Recall@K, NDCG@K, and MRR for a single evaluated user.
+    r"""Computes HitRate@K, Recall@K, NDCG@K, and MRR for a single evaluated user.
+
+    Mathematical Formulation:
+    .. math::
+        \text{For } \text{rank} = \text{index}(\text{target}) + 1: \\
+        \mathcal{M}_u = \{\text{MRR}_u, \{\text{Hit}@K_u, \text{Recall}@K_u, \text{NDCG}@K_u\}_{K \in \mathcal{K}}\}
 
     Args:
         ranked_item_ids: Ordered sequence of candidate item IDs sorted by descending predicted score.
@@ -263,7 +276,11 @@ def compute_ranking_metrics_for_user(
 
 
 def aggregate_ranking_metrics(user_metrics_list: Sequence[Dict[str, float]]) -> Dict[str, float]:
-    """Computes arithmetic mean of individual user ranking metrics across all evaluated users.
+    r"""Computes arithmetic mean of individual user ranking metrics across all evaluated users.
+
+    Mathematical Formulation:
+    .. math::
+        \bar{\mathcal{M}} = \frac{1}{|U|} \sum_{u \in U} \mathcal{M}_u
 
     Args:
         user_metrics_list: List of metric dictionaries per user.
