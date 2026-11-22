@@ -57,19 +57,20 @@
 - [x] Create `evaluation_metrics_Explanation.md` (169 lines, 18.5 KB): 11 metrics table, formal LaTeX mathematical formulations, target thresholds, derived composite KPI table, full empirical benchmark table (8 architectures), and 12 institutional Go/No-Go operational gates.
 - [x] Total: 651 lines, 67.6 KB of institutional documentation across 4 files. 100% column names and empirical numbers verified against data on disk.
 
-### Phase 4: `README.md` (Institutional Publication Quality, ~380 lines) — READY TO START
-- [ ] 13 structured chapters matching Dubai Real Estate
-- [ ] Functional shields badges, ASCII system architecture, relational data partition tree
-- [ ] RecSys feature engineering table, 10-stage EDA findings, benchmark table with real metrics
-- [ ] Mathematical foundations written in LaTeX KaTeX
-- [ ] Edge economics, tech stack, installation guide, repository structure, and governance/privacy section
-- [ ] Verify all command paths and execution instructions
+### Phase 4: `README.md` (Institutional Publication Quality, ~380 lines) — COMPLETED
+- [x] 13 structured chapters matching Dubai Real Estate
+- [x] Functional shields badges, ASCII system architecture, relational data partition tree
+- [x] RecSys feature engineering table, 10-stage EDA findings, benchmark table with real metrics
+- [x] Mathematical foundations written in LaTeX KaTeX
+- [x] Edge economics, tech stack, installation guide, repository structure, and governance/privacy section
+- [x] Verify all command paths and execution instructions
 
-### Phase 5: `app.py` (Interactive Dashboard & Edge Simulator)
-- [ ] Add Tab "EDA Visual Gallery" featuring high-res plots from `plots/`
-- [ ] Add "Edge Deployment & Bandwidth Simulator" with interactive client & round sliders
-- [ ] Connect simulator calculations directly to `recsys_core.py`
-- [ ] Verify app runs cleanly with `streamlit run app.py` and visual validation
+### Phase 5: `app.py` (Interactive Dashboard & Edge Simulator) — COMPLETED
+- [x] Tab "EDA Visual Gallery" featuring high-res 300 DPI plots from `plots/` with interactive theme filter
+- [x] "Edge Deployment & Bandwidth Simulator" with interactive client (5-10k) & round (1-100) sliders
+- [x] Single source of truth: simulator calculations directly import from `recsys_core.py`
+- [x] 5-color semantic palette (Slate Navy, Cobalt, Emerald, Amber, Crimson) without AI-slop gradients
+- [x] Verify app runs cleanly with `streamlit run app.py` (AppTest 0 exceptions, HTTP 200 on port 8501)
 
 ---
 
@@ -84,3 +85,4 @@
 | 2026-11-21 23:38 | Phase 2 | `KeyError: 'convergence_history'` in FL results | Corrected key to `'round_history'` and `'mean_personalized_metrics'`. |
 | 2026-11-21 23:46 | Phase 2 | `TypeError` in `calculate_wire_payload` keyword `dtype_bytes` | Corrected keyword argument to `precision_bytes=4` and aligned economic simulation dict keys. |
 | 2026-11-21 23:51 | Phase 2 | `NameError: 'cells' is not defined` in final notebook cell | Replaced generator variable with static output string. Top-to-bottom run exited with code 0. |
+| 2026-11-22 10:36 | Phase 5 | `TypeError: 'NoneType' object cannot be interpreted as integer` in `app.py` line 310 | Filtered valid test users to ensure `test_df.iloc[0]['parent_asin'] in item_to_id`. AppTest passed with 0 exceptions. |
