@@ -1,0 +1,152 @@
+// FedSocial V2 — Central PostgreSQL Prisma Schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  username     String       @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  profile      UserProfile?
+  sessions     Session[]
+
+  @@index([email])
+  @@index([username])
+}
+
+model UserProfile {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName         String?
+  bio                 String?
+  avatarUrl           String?
+  onboardingCompleted Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([tokenHash])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  posts       Post[]
+  createdAt   DateTime @default(now())
+
+  @@index([slug])
+}
+
+enum SourceType {
+  SYNTHETIC_GENERATED
+  EXTERNAL_BENCHMARK
+  EDITORIAL_ORIGINAL
+}
+
+model Post {
+  id               String      @id @default(uuid())
+  slug             String      @unique
+  title            String
+  body             String      @db.Text
+  excerpt          String?     @db.Text
+  categoryId       String
+  category         Category    @relation(fields: [categoryId], references: [id])
+  tags             PostTag[]
+  images           PostImage[]
+  wordCount        Int
+  estimatedReadMin Int
+  language         String      @default("en")
+  sourceType       SourceType  @default(SYNTHETIC_GENERATED)
+  referenceUrls    String[]
+  publishedAt      DateTime    @default(now())
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([categoryId, publishedAt(sort: Desc)])
+  @@index([publishedAt(sort: Desc)])
+}
+
+model Tag {
+  id    String    @id @default(uuid())
+  name  String    @unique
+  slug  String    @unique
+  posts PostTag[]
+
+  @@index([slug])
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+model PostImage {
+  id          String   @id @default(uuid())
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  imageUrl    String
+  license     String?
+  attribution String?
+  createdAt   DateTime @default(now())
+}
+
+model ModelVersion {
+  id               String          @id @default(uuid())
+  versionTag       String          @unique
+  architectureName String
+  parameterCount   Int
+  storagePath      String
+  isActive         Boolean         @default(false)
+  trainingRounds   TrainingRound[]
+  createdAt        DateTime        @default(now())
+
+  @@index([isActive])
+}
+
+model TrainingRound {
+  id                   String       @id @default(uuid())
+  modelVersionId       String
+  modelVersion         ModelVersion @relation(fields: [modelVersionId], references: [id])
+  roundNumber          Int
+  participatingClients Int
+  aggregationStrategy  String
+  globalLoss           Float?
+  roundDurationSec     Float?
+  createdAt            DateTime     @default(now())
+
+  @@unique([modelVersionId, roundNumber])
+}
+
+model ClientRegistry {
+  id               String   @id @default(uuid())
+  clientUuid       String   @unique
+  pairingTokenHash String
+  registeredAt     DateTime @default(now())
+  lastActiveAt     DateTime @default(now())
+
+  @@index([clientUuid])
+}

@@ -1,0 +1,39 @@
+version: "2.0.0"
+project: "FedSocial V2"
+created_at: "2026-11-22T17:20:00Z"
+
+datasets:
+  mind_small:
+    name: "Microsoft News Dataset (MIND-small)"
+    source_url: "https://msnews.github.io/"
+    license: "Microsoft Research License Terms"
+    status: "external_benchmark"
+    storage_path: "ml/data/external/mind/"
+    split_protocol: "official"
+
+  kuairec:
+    name: "KuaiRec Video Interaction Dataset"
+    source_url: "https://kuairec.com/"
+    license: "CC BY-NC 4.0"
+    status: "reference_benchmark"
+    storage_path: "ml/data/external/kuairec/"
+    split_protocol: "reference_only"
+
+  fedsocial_articles:
+    name: "FedSocial 3,000 Article Corpus"
+    categories:
+      ai: 1000
+      sports: 1000
+      history: 1000
+    total_articles: 3000
+    language: "en"
+    storage_path: "ml/data/processed/articles.json"
+    status: "primary_content_catalog"
+
+  synthetic_interactions:
+    name: "FedSocial Synthetic Behavior Log"
+    simulated_users: 100
+    observation_days: 90
+    seed: 42
+    partition_strategy: "dirichlet_non_iid_alpha_0_5"
+    storage_path: "ml/data/synthetic/interactions.csv"
