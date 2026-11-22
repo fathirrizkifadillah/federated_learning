@@ -1,0 +1,25 @@
+federated:
+  paradigm: "simulation"
+  strategies:
+    - name: "FedAvg"
+      description: "Standard Federated Averaging under Dirichlet skew"
+    - name: "FedProx"
+      description: "Proximal Federated Learning with drift regularization"
+      mu: 0.01
+  num_clients: 10
+  dirichlet_alpha: 0.5
+  num_rounds: 10
+  local_epochs: 3
+  local_batch_size: 32
+  local_learning_rate: 0.005
+  shared_parameter_payload_kb: 184.2
+  empirical_findings:
+    centralized_gold_standard_ndcg: 0.1061
+    isolated_local_ndcg: 0.0898
+    fedavg_non_iid_ndcg: 0.0500
+    fedprox_non_iid_ndcg: 0.0742
+    fedprox_lift_over_fedavg_percent: 48.4
+    privacy_leakage_bytes: 0
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr", "gini_fairness"]
+  k: 10

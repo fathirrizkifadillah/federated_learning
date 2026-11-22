@@ -1,0 +1,10 @@
+model:
+  type: "content_based"
+  name: "TF-IDF / Dense Semantic Cosine Baseline"
+  vectorizer: "sentence-transformers-384"
+  similarity_metric: "cosine"
+  user_profile_aggregation: "dwell_weighted_mean"
+  top_k: 10
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr"]
+  k: 10

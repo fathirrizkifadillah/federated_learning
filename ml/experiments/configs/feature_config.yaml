@@ -1,0 +1,14 @@
+features:
+  text_embeddings:
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+    dimension: 384
+    pooling: "mean"
+    normalize: true
+  dwell_time:
+    transform: "log1p"
+    scale_factor: 1.0
+  scroll_depth:
+    bounds: [0.0, 1.0]
+    weight: 0.3
+  composite_implicit_weight:
+    formula: "log1p(duration_ms / 1000.0) * (0.7 + 0.3 * scroll_depth)"

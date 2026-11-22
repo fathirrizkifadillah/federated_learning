@@ -1,0 +1,9 @@
+model:
+  type: "popularity"
+  name: "Dwell-Weighted Popularity Baseline"
+  weight_by_dwell: true
+  decay_factor: null
+  top_k: 10
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr"]
+  k: 10

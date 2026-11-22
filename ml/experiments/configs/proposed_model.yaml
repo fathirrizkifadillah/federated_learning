@@ -1,0 +1,22 @@
+model:
+  type: "content_aware_neural"
+  name: "FedSocial Content-Aware Neural Recommender"
+  semantic_feature_dim: 384
+  embedding_dim: 64
+  projection_layers: [128, 64]
+  gmf_dim: 64
+  mlp_hidden_layers: [128, 64]
+  dropout: 0.1
+  decoupled_architecture:
+    user_embeddings: "strictly_on_device"
+    shared_parameters: ["item_proj", "head", "gmf", "mlp"]
+training:
+  optimizer: "AdamW"
+  learning_rate: 0.003
+  weight_decay: 1e-4
+  batch_size: 64
+  epochs: 20
+  loss: "bpr_loss"
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr", "gini_inequality"]
+  k: 10

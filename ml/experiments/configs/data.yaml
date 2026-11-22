@@ -1,0 +1,17 @@
+dataset:
+  name: "fedsocial-custom-corpus"
+  version: "2.0.0"
+  categories:
+    - name: "AI"
+      target_count: 1000
+    - name: "Sports"
+      target_count: 1000
+    - name: "History"
+      target_count: 1000
+  total_articles: 3000
+  language: "en"
+  paths:
+    processed_articles: "ml/data/processed/articles.json"
+    embeddings: "ml/data/processed/article_embeddings.npy"
+    interactions: "ml/data/processed/interactions.csv"
+    partitions: "ml/data/processed/federated_partitions.json"

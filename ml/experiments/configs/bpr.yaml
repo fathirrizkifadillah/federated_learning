@@ -1,0 +1,17 @@
+model:
+  type: "bpr_mf"
+  name: "Bayesian Personalized Ranking Matrix Factorization"
+  embedding_dim: 64
+  num_users: 100
+  num_items: 3000
+training:
+  optimizer: "AdamW"
+  learning_rate: 0.005
+  weight_decay: 0.0001
+  batch_size: 64
+  epochs: 15
+  negative_samples_ratio: 4
+  loss: "bpr_loss"
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr"]
+  k: 10

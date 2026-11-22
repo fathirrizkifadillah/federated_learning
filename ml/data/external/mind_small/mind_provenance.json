@@ -1,0 +1,11 @@
+{
+  "dataset_name": "Microsoft News Dataset (MIND-small)",
+  "official_source": "https://msnews.github.io/",
+  "license": "Microsoft Research License Terms (Research Purpose Only)",
+  "citation": "Wu, Fangzhao, et al. 'MIND: A Large-scale Dataset for News Recommendation.' ACL 2020.",
+  "files_expected": [
+    "news.tsv (News ID, Category, Subcategory, Title, Abstract, URL, Title Entities, Abstract Entities)",
+    "behaviors.tsv (Impression ID, User ID, Time, History, Impressions [NewsID-Click])"
+  ],
+  "status": "Staged schema and acquisition pipeline"
+}

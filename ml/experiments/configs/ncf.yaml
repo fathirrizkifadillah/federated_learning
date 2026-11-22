@@ -1,0 +1,16 @@
+model:
+  type: "ncf"
+  name: "Neural Collaborative Filtering Baseline"
+  latent_dim_gmf: 32
+  latent_dim_mlp: 64
+  mlp_hidden_layers: [128, 64, 32]
+  dropout: 0.2
+training:
+  optimizer: "Adam"
+  learning_rate: 0.001
+  batch_size: 128
+  epochs: 20
+  loss: "bce_with_logits"
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr"]
+  k: 10

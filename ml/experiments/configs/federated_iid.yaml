@@ -1,0 +1,19 @@
+federated:
+  paradigm: "simulation"
+  strategy: "FedAvg"
+  num_clients: 10
+  fraction_fit: 1.0
+  min_fit_clients: 10
+  min_available_clients: 10
+  num_rounds: 10
+  local_epochs: 3
+  local_batch_size: 32
+  local_learning_rate: 0.005
+  distribution: "iid"
+  shared_parameter_payload_kb: 184.2
+  privacy_guarantee:
+    raw_telemetry_shared: false
+    user_embeddings_shared: false
+evaluation:
+  metrics: ["ndcg@10", "hit_rate@10", "mrr", "gini_fairness"]
+  k: 10

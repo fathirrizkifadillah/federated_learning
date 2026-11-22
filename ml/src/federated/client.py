@@ -43,13 +43,13 @@ class FlowerRecClient(fl.client.NumPyClient):
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Returns ONLY shared item projection and MLP weights (never user embeddings)."""
         shared_params = [
-            self.model.item_projection.weight.detach().cpu().numpy(),
-            self.model.item_projection.bias.detach().cpu().numpy(),
-            self.model.mlp[0].weight.detach().cpu().numpy(),
-            self.model.mlp[0].bias.detach().cpu().numpy(),
-            self.model.mlp[3].weight.detach().cpu().numpy(),
-            self.model.mlp[3].bias.detach().cpu().numpy(),
-            self.model.prediction_head.weight.detach().cpu().numpy(),
+            self.model.item_projection.weight.detach().cpu().numpy().copy(),
+            self.model.item_projection.bias.detach().cpu().numpy().copy(),
+            self.model.mlp[0].weight.detach().cpu().numpy().copy(),
+            self.model.mlp[0].bias.detach().cpu().numpy().copy(),
+            self.model.mlp[3].weight.detach().cpu().numpy().copy(),
+            self.model.mlp[3].bias.detach().cpu().numpy().copy(),
+            self.model.prediction_head.weight.detach().cpu().numpy().copy(),
         ]
         return shared_params
 
