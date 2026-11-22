@@ -7,28 +7,35 @@
 // 1. ARTICLE & CONTENT CONTRACTS
 // ==========================================
 
-export type ArticleCategory = 'AI' | 'Sports' | 'History';
+export type ArticleCategory = 'AI' | 'Sports' | 'History' | string;
 
-export type ArticleSourceType = 'AI_GENERATED' | 'EXTERNAL_BENCHMARK' | 'EDITORIAL_ORIGINAL';
+export type ArticleSourceType = 'AI_GENERATED' | 'SYNTHETIC_GENERATED' | 'EXTERNAL_BENCHMARK' | 'EDITORIAL_ORIGINAL';
 
 export interface Article {
   article_id: string;
+  id?: string;
   slug: string;
   title: string;
   body: string;
+  content?: string;
   excerpt?: string;
+  summary?: string;
   category: ArticleCategory;
   subcategory: string;
   tags: string[];
   word_count: number;
+  wordCount?: number;
   estimated_read_min: number;
+  readingTimeMinutes?: number;
+  author?: string;
   language: string;
   image_url: string | null;
-  image_license: string | null;
-  image_attribution: string | null;
+  image_license?: string | null;
+  image_attribution?: string | null;
   published_at: string; // ISO-8601
-  source_type: ArticleSourceType;
-  reference_urls: string[];
+  publishedAt?: string;
+  source_type?: ArticleSourceType;
+  reference_urls?: string[];
 }
 
 export interface ArticleSummary {
@@ -45,6 +52,19 @@ export interface ArticleSummary {
   image_url: string | null;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+}
+
+export interface PublicCandidatePoolResponse {
+  candidates: Article[];
+  total: number;
+  modelVersion: string;
+}
+
 // ==========================================
 // 2. LOCAL BEHAVIORAL TRACKING EVENTS
 // ==========================================
@@ -54,27 +74,38 @@ export type EventType =
   | 'view_start'
   | 'view_end'
   | 'active_reading'
+  | 'dwell'
+  | 'click'
   | 'scroll'
   | 'like'
   | 'unlike'
   | 'bookmark'
   | 'unbookmark'
+  | 'share'
   | 'not_interested'
   | 'skip';
 
 export interface LocalEvent {
   event_id: string;
+  id?: string;
   local_client_id: string;
   local_user_key: string;
+  userId?: string;
   article_id: string;
+  articleId?: string;
   session_id: string;
   event_type: EventType;
+  eventType?: EventType;
   event_timestamp: string; // ISO-8601
+  timestamp?: number;
   duration_ms: number;     // Continuous millisecond accumulator
+  durationMs?: number;
   scroll_depth: number;    // 0.0 to 1.0 progression
+  scrollDepthPercent?: number;
   tab_visible: boolean;
   window_focused: boolean;
   content_word_count: number;
+  metadata?: Record<string, any>;
 }
 
 // ==========================================
