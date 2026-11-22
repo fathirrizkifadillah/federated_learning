@@ -86,3 +86,4 @@
 | 2026-11-21 23:46 | Phase 2 | `TypeError` in `calculate_wire_payload` keyword `dtype_bytes` | Corrected keyword argument to `precision_bytes=4` and aligned economic simulation dict keys. |
 | 2026-11-21 23:51 | Phase 2 | `NameError: 'cells' is not defined` in final notebook cell | Replaced generator variable with static output string. Top-to-bottom run exited with code 0. |
 | 2026-11-22 10:36 | Phase 5 | `TypeError: 'NoneType' object cannot be interpreted as integer` in `app.py` line 310 | Filtered valid test users to ensure `test_df.iloc[0]['parent_asin'] in item_to_id`. AppTest passed with 0 exceptions. |
+| 2026-11-22 15:02 | Phase 2 | KaTeX parse error in `main.ipynb` (Cell 0, 1, 82, 84, 89) due to Python string escape sequences (`\a`, `\t`, `\f`) | Repaired cells replacing `\u0007lpha` with `\alpha`, literal tabs with `\text`/`\times`, and formfeed with `\frac`. Audited all 94 cells (0 LaTeX issues remaining). |
