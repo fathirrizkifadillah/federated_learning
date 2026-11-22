@@ -49,15 +49,15 @@
 - [x] Ensure all mathematical functions and metrics are imported from `recsys_core.py` (no duplicate formulas)
 - [x] Execute top-to-bottom without errors (`nbconvert --execute` exited with code 0) and save all 2.88 MB of cell outputs
 
-### Phase 3: `docs/data_dictionary/` (Bilingual Documentation) — READY TO START
-- [ ] Create `docs/data_dictionary/`
-- [ ] Create `raw_reviews_Explanation.md` (ID & EN)
-- [ ] Create `clean_interactions_Explanation.md` (ID & EN)
-- [ ] Create `federated_partitions_Explanation.md` (ID & EN)
-- [ ] Create `evaluation_metrics_Explanation.md` (ID & EN)
-- [ ] Verify exact column names against real dataset files
+### Phase 3: `docs/data_dictionary/` (Bilingual Documentation) — COMPLETED & AUDITED
+- [x] Create `docs/data_dictionary/` directory
+- [x] Create `raw_reviews_Explanation.md` (150 lines, 17.6 KB): 10 raw JSON columns, image structures, ratings J-curve, 12 analysis questions, derived features table (EN/ID), full descriptive percentile distribution, and cleanroom quarantine caveats.
+- [x] Create `clean_interactions_Explanation.md` (148 lines, 14.7 KB): 7 clean CSV columns, SHA-256 fingerprint, implicit feedback conversion threshold ($r \ge 4.0$), 12 analysis questions, derived features table (EN/ID), full descriptive percentile distribution.
+- [x] Create `federated_partitions_Explanation.md` (184 lines, 16.7 KB): 4 columns, 3-core graph pruning, Leave-Last-2-Out chronological split, Dirichlet $\alpha=0.5$ non-IID shards, JSON metadata schemas (`user_mapping`, `item_mapping`, `eval_negatives`), cross-partition summary table, and zero temporal/label leakage guarantees.
+- [x] Create `evaluation_metrics_Explanation.md` (169 lines, 18.5 KB): 11 metrics table, formal LaTeX mathematical formulations, target thresholds, derived composite KPI table, full empirical benchmark table (8 architectures), and 12 institutional Go/No-Go operational gates.
+- [x] Total: 651 lines, 67.6 KB of institutional documentation across 4 files. 100% column names and empirical numbers verified against data on disk.
 
-### Phase 4: `README.md` (Institutional Publication Quality, ~380 lines)
+### Phase 4: `README.md` (Institutional Publication Quality, ~380 lines) — READY TO START
 - [ ] 13 structured chapters matching Dubai Real Estate
 - [ ] Functional shields badges, ASCII system architecture, relational data partition tree
 - [ ] RecSys feature engineering table, 10-stage EDA findings, benchmark table with real metrics
