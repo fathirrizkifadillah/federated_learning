@@ -1,0 +1,22 @@
+{
+  "total_articles": 3000,
+  "category_counts": {
+    "AI": 1000,
+    "Sports": 1000,
+    "History": 1000
+  },
+  "word_count_stats": {
+    "min": 204,
+    "max": 236,
+    "mean": 221.7,
+    "std": 12.022617574111443
+  },
+  "read_time_stats": {
+    "min": 3,
+    "max": 3,
+    "mean": 3.0
+  },
+  "unique_authors": 18,
+  "unique_subcategories": 30,
+  "generated_at": "2026-11-22T11:26:36.945013Z"
+}
