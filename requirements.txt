@@ -1,7 +1,3 @@
-torch
-torchvision
-flwr
-sklearn
-numpy
-pandas
-matplotlib
+# FedSocial V2 — Root Python Requirements
+# Mirrors ml/requirements.txt for unified environment setups
+-r ml/requirements.txt
