@@ -75,6 +75,7 @@ async function main() {
             categoryId: categoryMap[art.category] || 'cat-ai-001',
             wordCount: art.word_count || art.wordCount || 250,
             estimatedReadMin: art.estimated_read_min || art.readingTimeMinutes || 3,
+            language: art.language || 'en',
             publishedAt: new Date(art.published_at || art.publishedAt),
           },
           create: {
@@ -86,9 +87,9 @@ async function main() {
             categoryId: categoryMap[art.category] || 'cat-ai-001',
             wordCount: art.word_count || art.wordCount || 250,
             estimatedReadMin: art.estimated_read_min || art.readingTimeMinutes || 3,
-            language: 'en',
-            sourceType: 'SYNTHETIC_GENERATED',
-            referenceUrls: [],
+            language: art.language || 'en',
+            sourceType: art.language === 'id' ? 'EDITORIAL_ORIGINAL' : 'SYNTHETIC_GENERATED',
+            referenceUrls: art.reference_urls || [],
             publishedAt: new Date(art.published_at || art.publishedAt),
           },
         })

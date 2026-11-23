@@ -129,37 +129,37 @@ function FeedContent() {
           </div>
 
           {/* Content Language Filter Pills */}
-          <div className="flex items-center space-x-2 text-xs font-mono">
-            <span className="text-charcoal-500 hidden sm:inline">{t('filter_lang_label')}</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+            <span className="text-charcoal-500 hidden sm:inline mr-1">{t('filter_lang_label')}</span>
             <button
               onClick={() => setLangFilter('all')}
-              className={`px-2.5 py-1 rounded border transition-colors ${
+              className={`px-3 py-1.5 rounded border transition-colors ${
                 langFilter === 'all'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-semibold'
-                  : 'border-[#EAE7E2] bg-surface text-charcoal-700 hover:border-charcoal-400'
+                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
+                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
               }`}
             >
-              Semua (4.050)
+              Semua (4.300+)
             </button>
             <button
               onClick={() => setLangFilter('id')}
-              className={`px-2.5 py-1 rounded border transition-colors ${
+              className={`px-3 py-1.5 rounded border transition-colors ${
                 langFilter === 'id'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-semibold'
-                  : 'border-[#EAE7E2] bg-surface text-charcoal-700 hover:border-charcoal-400'
+                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
+                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
               }`}
             >
-              🇮🇩 Indonesia (1.050)
+              Bahasa Indonesia (1.300+)
             </button>
             <button
               onClick={() => setLangFilter('en')}
-              className={`px-2.5 py-1 rounded border transition-colors ${
+              className={`px-3 py-1.5 rounded border transition-colors ${
                 langFilter === 'en'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-semibold'
-                  : 'border-[#EAE7E2] bg-surface text-charcoal-700 hover:border-charcoal-400'
+                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
+                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
               }`}
             >
-              🇬🇧 English (3.000)
+              English (3.000+)
             </button>
           </div>
         </div>

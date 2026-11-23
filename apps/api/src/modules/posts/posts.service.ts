@@ -6,6 +6,7 @@ export class PostsService {
     limit?: number;
     cursor?: string;
     sort?: 'latest' | 'trending';
+    language?: string;
   }) {
     const limit = Math.min(options.limit || 20, 50);
     const where: any = {};
@@ -16,17 +17,24 @@ export class PostsService {
       };
     }
 
-    const posts = await prisma.post.findMany({
-      where,
-      take: limit + 1,
-      ...(options.cursor ? { skip: 1, cursor: { id: options.cursor } } : {}),
-      orderBy: { publishedAt: 'desc' },
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-        images: { take: 1 },
-      },
-    });
+    if (options.language && options.language.toLowerCase() !== 'all') {
+      where.language = options.language.toLowerCase();
+    }
+
+    const [total, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        take: limit + 1,
+        ...(options.cursor ? { skip: 1, cursor: { id: options.cursor } } : {}),
+        orderBy: { publishedAt: 'desc' },
+        include: {
+          category: true,
+          tags: { include: { tag: true } },
+          images: { take: 1 },
+        },
+      }),
+    ]);
 
     let nextCursor: string | null = null;
     if (posts.length > limit) {
@@ -35,17 +43,27 @@ export class PostsService {
     }
 
     return {
+      total,
       items: posts.map((p) => ({
+        id: p.id,
         article_id: p.id,
         slug: p.slug,
         title: p.title,
         excerpt: p.excerpt || p.body.slice(0, 180) + '...',
+        summary: p.excerpt || p.body.slice(0, 180) + '...',
+        body: p.body,
+        content: p.body,
         category: p.category.name,
         category_slug: p.category.slug,
+        subcategory: p.category.name,
         tags: p.tags.map((t) => t.tag.name),
         word_count: p.wordCount,
+        wordCount: p.wordCount,
         estimated_read_min: p.estimatedReadMin,
+        readingTimeMinutes: p.estimatedReadMin,
+        language: p.language,
         published_at: p.publishedAt.toISOString(),
+        publishedAt: p.publishedAt.toISOString(),
         image_url: p.images[0]?.imageUrl || null,
       })),
       nextCursor,
@@ -89,29 +107,46 @@ export class PostsService {
     };
   }
 
-  static async getCandidates(limit: number = 100) {
+  static async getCandidates(limit: number = 100, language?: string) {
+    const where: any = {};
+    if (language && language.toLowerCase() !== 'all') {
+      where.language = language.toLowerCase();
+    }
+
     const posts = await prisma.post.findMany({
+      where,
       take: Math.min(limit, 200),
       select: {
         id: true,
         slug: true,
         title: true,
+        body: true,
+        excerpt: true,
         categoryId: true,
         category: { select: { name: true, slug: true } },
         wordCount: true,
+        estimatedReadMin: true,
+        language: true,
         publishedAt: true,
       },
       orderBy: { publishedAt: 'desc' },
     });
 
     return posts.map((p) => ({
+      id: p.id,
       article_id: p.id,
       slug: p.slug,
       title: p.title,
+      summary: p.excerpt || p.body.slice(0, 180) + '...',
       category: p.category.name,
       category_slug: p.category.slug,
+      subcategory: p.category.name,
       word_count: p.wordCount,
+      estimated_read_min: p.estimatedReadMin,
+      readingTimeMinutes: p.estimatedReadMin,
+      language: p.language,
       published_at: p.publishedAt.toISOString(),
+      publishedAt: p.publishedAt.toISOString(),
     }));
   }
 

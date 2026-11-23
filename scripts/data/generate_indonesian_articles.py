@@ -178,8 +178,10 @@ def generate_indonesian_corpus(target_per_category=350):
             num_tags = random.randint(3, 5)
             selected_tags = list(set([cat_data["slug"], subcat.lower().replace(" ", "-")] + random.sample(tags_pool, num_tags)))
 
-            article_id = f"id-{cat_key.lower()}-{uuid.uuid4().hex[:10]}"
-            slug = title.lower().replace(":", "").replace("?", "").replace(",", "").replace("&", "dan").replace("'", "").replace(" ", "-")[:80] + f"-{article_id[:8]}"
+            uid = uuid.uuid4().hex[:8]
+            article_id = f"id-{cat_key.lower()}-{uid}"
+            slug_base = title.lower().replace(":", "").replace("?", "").replace(",", "").replace("&", "dan").replace("'", "").replace(" ", "-")[:70]
+            slug = f"{slug_base}-{uid}"
 
             word_count = len(body.split())
 

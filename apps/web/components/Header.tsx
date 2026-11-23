@@ -31,28 +31,28 @@ export function Header() {
           {/* Nav Actions & Language Switcher */}
           <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Language Switcher */}
-            <div className="flex items-center border border-[#EAE7E2] rounded bg-surface p-0.5 text-xs font-mono">
+            <div className="flex items-center border border-[#DED9D2] rounded bg-white p-0.5 text-xs font-mono shadow-sm">
               <button
                 onClick={() => setLang('id')}
-                className={`px-2 py-1 rounded transition-colors ${
+                className={`px-2.5 py-1 rounded transition-colors ${
                   lang === 'id'
-                    ? 'bg-charcoal-900 text-white font-semibold'
-                    : 'text-charcoal-600 hover:text-charcoal-900'
+                    ? 'bg-charcoal-900 text-white font-bold'
+                    : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
                 }`}
                 title="Beralih ke Bahasa Indonesia"
               >
-                🇮🇩 ID
+                ID
               </button>
               <button
                 onClick={() => setLang('en')}
-                className={`px-2 py-1 rounded transition-colors ${
+                className={`px-2.5 py-1 rounded transition-colors ${
                   lang === 'en'
-                    ? 'bg-charcoal-900 text-white font-semibold'
-                    : 'text-charcoal-600 hover:text-charcoal-900'
+                    ? 'bg-charcoal-900 text-white font-bold'
+                    : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
                 }`}
                 title="Switch to English"
               >
-                🇬🇧 EN
+                EN
               </button>
             </div>
 
