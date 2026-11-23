@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 
 export function Header() {
   const { lang, setLang, t } = useLanguage();
+  const { user, logout } = useAuth();
 
   return (
     <header className="border-b border-[#EAE7E2] bg-[#FDFCFB]/90 sticky top-0 z-40 backdrop-blur-sm">
@@ -28,8 +30,8 @@ export function Header() {
             <span>{t('privacy_badge')}</span>
           </div>
 
-          {/* Nav Actions & Language Switcher */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          {/* Nav Actions & Language Switcher & Auth */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3.5">
             {/* Language Switcher */}
             <div className="flex items-center border border-[#DED9D2] rounded bg-white p-0.5 text-xs font-mono shadow-sm">
               <button
@@ -58,16 +60,44 @@ export function Header() {
 
             <Link
               href="/edge-data"
-              className="text-xs font-mono font-medium text-charcoal-700 hover:text-accent border border-[#EAE7E2] hover:border-accent/40 bg-surface px-3 py-1.5 rounded transition-all shadow-sm hidden sm:inline-block"
+              className="text-xs font-mono font-medium text-charcoal-700 hover:text-accent border border-[#EAE7E2] hover:border-accent/40 bg-surface px-3 py-1.5 rounded transition-all shadow-sm hidden md:inline-block"
             >
               {t('btn_edge_data')}
             </Link>
             <Link
               href="/fl-network"
-              className="text-xs font-mono font-medium bg-charcoal-900 hover:bg-accent text-white px-3 py-1.5 rounded transition-colors shadow-sm"
+              className="text-xs font-mono font-medium bg-charcoal-900 hover:bg-accent text-white px-3 py-1.5 rounded transition-colors shadow-sm hidden sm:inline-block"
             >
               {t('btn_fl_network')}
             </Link>
+
+            {/* User Account / Login Button */}
+            {user ? (
+              <div className="flex items-center space-x-2 pl-2 border-l border-[#EAE7E2]">
+                <div className="flex items-center space-x-1.5 text-xs font-mono text-charcoal-900">
+                  <span className="w-6 h-6 rounded-full bg-charcoal-900 text-white flex items-center justify-center font-bold text-[11px]">
+                    {(user.displayName || user.username || 'U')[0].toUpperCase()}
+                  </span>
+                  <span className="font-semibold hidden lg:inline max-w-[100px] truncate">
+                    {user.displayName || user.username}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="text-[11px] font-mono text-charcoal-500 hover:text-red-700 hover:underline px-1 py-0.5"
+                  title="Keluar dari akun"
+                >
+                  {lang === 'id' ? 'Keluar' : 'Sign Out'}
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="text-xs font-mono font-bold text-charcoal-900 hover:text-white hover:bg-charcoal-900 border border-charcoal-900 px-3 py-1.5 rounded transition-all shadow-sm"
+              >
+                {lang === 'id' ? 'Masuk' : 'Sign In'}
+              </Link>
+            )}
           </div>
         </div>
 
