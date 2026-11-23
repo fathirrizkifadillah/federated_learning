@@ -17,9 +17,8 @@ function FeedContent() {
   const [langFilter, setLangFilter] = useState<string>('all');
   const [articles, setArticles] = useState<(Article | ScoredArticle)[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [edgeRankedCount, setEdgeRankedCount] = useState<number>(0);
 
-  // Sync langFilter with active UI language on initial mount
+  // Sync langFilter with active UI language on mount
   useEffect(() => {
     if (lang === 'id') {
       setLangFilter('id');
@@ -33,34 +32,23 @@ function FeedContent() {
 
     async function loadFeed() {
       setLoading(true);
-
       const targetLang = langFilter === 'all' ? undefined : langFilter;
 
       if (activeTab === 'for-you' && categoryParam === 'all') {
-        // Fetch candidate pool and rank locally on edge device
-        const candidates = await fetchPublicCandidates(80, targetLang);
+        const candidates = await fetchPublicCandidates(60, targetLang);
         if (isCancelled) return;
 
         if (candidates.length > 0) {
           const ranked = await rankCandidatesOnDevice(candidates);
           setArticles(ranked);
-          setEdgeRankedCount(ranked.length);
         } else {
-          // Fallback if needed
           const fallbackFeed = await fetchFeedPosts(undefined, 1, 30, targetLang);
-          if (!isCancelled) {
-            setArticles(fallbackFeed.posts);
-            setEdgeRankedCount(0);
-          }
+          if (!isCancelled) setArticles(fallbackFeed.posts);
         }
       } else {
-        // Fetch chronological or category-filtered public feed
         const cat = categoryParam === 'all' ? undefined : categoryParam;
         const res = await fetchFeedPosts(cat, 1, 30, targetLang);
-        if (!isCancelled) {
-          setArticles(res.posts);
-          setEdgeRankedCount(0);
-        }
+        if (!isCancelled) setArticles(res.posts);
       }
 
       if (!isCancelled) setLoading(false);
@@ -74,130 +62,97 @@ function FeedContent() {
   }, [activeTab, categoryParam, langFilter]);
 
   return (
-    <div className="space-y-8">
-      {/* Editorial Hero Header */}
-      <div className="border-b border-[#EAE7E2] pb-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <span className="text-xs font-mono uppercase tracking-widest text-accent font-semibold">
-              {t('hero_tag')}
-            </span>
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal-900 mt-1">
-              {t('hero_title')}
-            </h1>
-            <p className="text-charcoal-700 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
-              {t('hero_desc')}
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Clean Editorial Hero Header (No Geeky Jargon) */}
+      <div className="pb-4 border-b border-[#E8E5DF]">
+        <span className="text-[11px] font-mono uppercase tracking-widest text-accent font-semibold">
+          {t('hero_tag')}
+        </span>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal-900 mt-1">
+          {t('hero_title')}
+        </h1>
+        <p className="text-charcoal-600 text-sm mt-1.5 max-w-2xl leading-relaxed">
+          {t('hero_desc')}
+        </p>
 
-          {/* Privacy Guarantee Capsule */}
-          <div className="bg-[#FAF8F5] border border-[#EAE7E2] p-3 rounded text-xs font-mono text-charcoal-700 max-w-xs shrink-0">
-            <div className="font-semibold text-charcoal-900 flex items-center gap-1.5 mb-1">
-              <span className="w-2 h-2 rounded-full bg-emerald"></span>
-              <span>{t('edge_guarantee_title')}</span>
-            </div>
-            <p className="text-[11px] leading-tight text-charcoal-500">
-              {t('edge_guarantee_desc')}
-            </p>
-          </div>
-        </div>
-
-        {/* Tab Controls & Language Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-[#F0ECE6]">
-          {/* Feed Tabs */}
-          <div className="flex items-center space-x-2">
+        {/* Feed Tabs & Compact Language Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 pt-4 border-t border-[#F0ECE6]">
+          {/* Main Feed Tabs */}
+          <div className="flex items-center space-x-1.5 bg-[#F2EFE9] p-1 rounded-md">
             <button
               onClick={() => setActiveTab('for-you')}
-              className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded font-medium transition-all ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded transition-all ${
                 activeTab === 'for-you'
-                  ? 'bg-charcoal-900 text-white shadow-sm'
-                  : 'bg-surface text-charcoal-700 border border-[#EAE7E2] hover:border-charcoal-700'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-600 hover:text-charcoal-900'
               }`}
             >
               {t('tab_for_you')}
             </button>
             <button
               onClick={() => setActiveTab('latest')}
-              className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded font-medium transition-all ${
+              className={`px-4 py-1.5 text-xs font-semibold rounded transition-all ${
                 activeTab === 'latest'
-                  ? 'bg-charcoal-900 text-white shadow-sm'
-                  : 'bg-surface text-charcoal-700 border border-[#EAE7E2] hover:border-charcoal-700'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-600 hover:text-charcoal-900'
               }`}
             >
               {t('tab_latest')}
             </button>
           </div>
 
-          {/* Content Language Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-            <span className="text-charcoal-500 hidden sm:inline mr-1">{t('filter_lang_label')}</span>
+          {/* Compact Language Filter */}
+          <div className="flex items-center space-x-1 text-xs">
             <button
               onClick={() => setLangFilter('all')}
-              className={`px-3 py-1.5 rounded border transition-colors ${
+              className={`px-2.5 py-1 rounded transition-colors ${
                 langFilter === 'all'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
-                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
+                  ? 'bg-charcoal-900 text-white font-semibold'
+                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
               }`}
             >
-              Semua (4.300+)
+              {t('filter_lang_all')}
             </button>
+            <span className="text-charcoal-300">•</span>
             <button
               onClick={() => setLangFilter('id')}
-              className={`px-3 py-1.5 rounded border transition-colors ${
+              className={`px-2.5 py-1 rounded transition-colors ${
                 langFilter === 'id'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
-                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
+                  ? 'bg-charcoal-900 text-white font-semibold'
+                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
               }`}
             >
-              Bahasa Indonesia (1.300+)
+              {t('filter_lang_id')}
             </button>
+            <span className="text-charcoal-300">•</span>
             <button
               onClick={() => setLangFilter('en')}
-              className={`px-3 py-1.5 rounded border transition-colors ${
+              className={`px-2.5 py-1 rounded transition-colors ${
                 langFilter === 'en'
-                  ? 'border-charcoal-900 bg-charcoal-900 text-white font-bold'
-                  : 'border-[#E2DDD5] bg-white text-charcoal-700 hover:border-charcoal-600'
+                  ? 'bg-charcoal-900 text-white font-semibold'
+                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
               }`}
             >
-              English (3.000+)
+              {t('filter_lang_en')}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Edge Simulation Explainer Bar (when in For You mode) */}
-      {activeTab === 'for-you' && (
-        <div className="bg-[#FBF9F6] border-l-4 border-accent p-4 rounded-r text-xs text-charcoal-700 leading-relaxed font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <span className="font-bold text-accent uppercase tracking-wider mr-2">
-              {t('edge_exec_tag')}
-            </span>
-            <span>
-              {edgeRankedCount > 0
-                ? `${edgeRankedCount} ${t('edge_exec_scoring')}`
-                : t('edge_exec_gathering')}
-            </span>
-          </div>
-          <span className="text-[11px] text-charcoal-500 whitespace-nowrap">
-            {t('zero_bytes')}
-          </span>
-        </div>
-      )}
-
       {/* Loading Skeleton or Article Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="border border-[#EAE7E2] bg-surface p-6 animate-pulse space-y-4">
-              <div className="h-4 bg-stone-200 rounded w-1/3"></div>
+            <div key={i} className="border border-[#E8E5DF] bg-white p-6 animate-pulse space-y-4">
+              <div className="h-4 bg-stone-200 rounded w-1/4"></div>
               <div className="h-6 bg-stone-200 rounded w-4/5"></div>
               <div className="h-16 bg-stone-100 rounded w-full"></div>
-              <div className="h-4 bg-stone-200 rounded w-1/2"></div>
+              <div className="h-4 bg-stone-200 rounded w-1/3"></div>
             </div>
           ))}
         </div>
       ) : articles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
           {articles.map((article, idx) => (
             <ArticleCard
               key={article.id || (article as any).article_id}
@@ -207,11 +162,11 @@ function FeedContent() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 border border-dashed border-[#D6D2CC] rounded bg-[#FAF8F5]">
+        <div className="text-center py-20 border border-dashed border-[#D6D2CC] rounded bg-white">
           <h3 className="font-serif text-xl font-bold text-charcoal-800">
             {t('empty_title')}
           </h3>
-          <p className="text-charcoal-500 text-sm mt-2 max-w-md mx-auto">
+          <p className="text-charcoal-500 text-xs mt-1.5 max-w-sm mx-auto">
             {t('empty_desc')}
           </p>
         </div>

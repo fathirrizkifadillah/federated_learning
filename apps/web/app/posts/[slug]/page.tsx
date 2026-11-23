@@ -104,15 +104,15 @@ export default function ArticleDetailPage() {
         </div>
 
         {/* Article Header */}
-        <header className="border-b border-[#EAE7E2] pb-6 mb-8">
-          <div className="flex items-center space-x-2 text-xs font-mono uppercase text-charcoal-500 mb-3">
-            <span className="font-semibold text-accent">{article.category}</span>
-            <span>•</span>
-            <span>{article.subcategory}</span>
-            <span>•</span>
-            <span>
-              {readMin} {t('read_time')}
-            </span>
+        <header className="border-b border-[#E8E5DF] pb-6 mb-8">
+          <div className="flex items-center space-x-2 text-xs font-mono uppercase text-accent font-semibold mb-3">
+            <span>{article.category}</span>
+            {article.subcategory && article.subcategory !== article.category && (
+              <>
+                <span>•</span>
+                <span className="text-charcoal-500">{article.subcategory}</span>
+              </>
+            )}
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-charcoal-900 leading-tight mb-4">
@@ -125,15 +125,12 @@ export default function ArticleDetailPage() {
             </p>
           )}
 
-          <div className="flex items-center justify-between text-xs font-mono text-charcoal-500 pt-4 border-t border-[#F5F3EF]">
+          <div className="flex items-center justify-between text-xs text-charcoal-500 pt-4 border-t border-[#F5F3EF]">
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-charcoal-800">{authorName}</span>
+              <span className="font-semibold text-charcoal-800">{authorName}</span>
               <span>•</span>
               <time dateTime={pubDate}>{dateFormatted}</time>
             </div>
-            <span>
-              {words} {t('words')}
-            </span>
           </div>
         </header>
 
@@ -170,67 +167,42 @@ export default function ArticleDetailPage() {
         )}
       </article>
 
-      {/* Floating Bottom Telemetry & Feedback Bar */}
-      <aside className="sticky bottom-4 max-w-2xl mx-auto bg-[#FDFCFB]/95 border border-[#D6D2CC] rounded shadow-lg p-3 sm:p-4 backdrop-blur mt-12 z-30">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
-          {/* Active reading telemetry indicator */}
-          <div className="flex items-center space-x-3 text-charcoal-700">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                tracker.isIdle ? 'bg-amber-500' : 'bg-emerald animate-pulse'
-              }`}
-            ></span>
-            <span>
-              {t('dwell_time_label')}{' '}
-              <strong className="text-charcoal-900">{tracker.activeReadingSeconds}s</strong>
-              {tracker.isIdle && (lang === 'id' ? ' (Diam)' : ' (Idle)')}
-            </span>
-            <span>•</span>
-            <span>
-              {t('scroll_depth_label')}{' '}
-              <strong className="text-charcoal-900">{tracker.maxScrollDepth}%</strong>
-            </span>
-          </div>
+      {/* Floating Bottom Feedback Action Bar */}
+      <aside className="sticky bottom-6 max-w-2xl mx-auto bg-white/95 border border-[#E8E5DF] rounded-full shadow-md px-6 py-3 backdrop-blur mt-12 z-30 flex items-center justify-between">
+        <span className="text-xs text-charcoal-500 font-sans">
+          {lang === 'id' ? 'Apakah bacaan ini bermanfaat?' : 'Found this insightful?'}
+        </span>
 
-          {/* Action buttons */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                tracker.recordExplicitFeedback('like');
-                setLiked(true);
-              }}
-              className={`px-3 py-1.5 rounded border text-xs font-medium transition-all ${
-                liked
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface text-charcoal-700 border-[#EAE7E2] hover:border-accent'
-              }`}
-            >
-              {liked
-                ? lang === 'id'
-                  ? '✓ Disukai (Lokal)'
-                  : '✓ Liked (Local)'
-                : '♥ Suka'}
-            </button>
-            <button
-              onClick={() => {
-                tracker.recordExplicitFeedback('bookmark');
-                setBookmarked(true);
-              }}
-              className={`px-3 py-1.5 rounded border text-xs font-medium transition-all ${
-                bookmarked
-                  ? 'bg-charcoal-900 text-white border-charcoal-900'
-                  : 'bg-surface text-charcoal-700 border-[#EAE7E2] hover:border-charcoal-700'
-              }`}
-            >
-              {bookmarked
-                ? lang === 'id'
-                  ? '✓ Tersimpan (Lokal)'
-                  : '✓ Saved (Local)'
-                : lang === 'id'
-                ? 'Simpan'
-                : 'Bookmark'}
-            </button>
-          </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              tracker.recordExplicitFeedback('like');
+              setLiked(!liked);
+            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+              liked
+                ? 'bg-accent text-white font-semibold'
+                : 'bg-[#F2EFE9] text-charcoal-800 hover:bg-[#EAE5DD]'
+            }`}
+          >
+            <span>♥</span>
+            <span>{liked ? t('liked') : t('like')}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              tracker.recordExplicitFeedback('bookmark');
+              setBookmarked(!bookmarked);
+            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+              bookmarked
+                ? 'bg-charcoal-900 text-white font-semibold'
+                : 'bg-[#F2EFE9] text-charcoal-800 hover:bg-[#EAE5DD]'
+            }`}
+          >
+            <span>🔖</span>
+            <span>{bookmarked ? t('bookmarked') : t('bookmark')}</span>
+          </button>
         </div>
       </aside>
     </div>
