@@ -1,8 +1,16 @@
-import { Article, Category, PublicCandidatePoolResponse } from '@fedsocial/shared-types';
+import { Article, Category } from '@fedsocial/shared-types';
+import fallbackArticlesData from './fallback-articles.json';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-export async function fetchFeedPosts(category?: string, page = 1, limit = 20): Promise<{
+const fallbackArticles = fallbackArticlesData as unknown as Article[];
+
+export async function fetchFeedPosts(
+  category?: string,
+  page = 1,
+  limit = 30,
+  lang?: string
+): Promise<{
   posts: Article[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }> {
@@ -14,57 +22,125 @@ export async function fetchFeedPosts(category?: string, page = 1, limit = 20): P
     if (category && category !== 'all') {
       params.append('category', category);
     }
+    if (lang && lang !== 'all') {
+      params.append('language', lang);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
 
     const res = await fetch(`${API_BASE_URL}/posts?${params.toString()}`, {
+      signal: controller.signal,
       next: { revalidate: 60 },
     });
+    clearTimeout(timeout);
+
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    return data.data;
+    if (data.data?.posts && data.data.posts.length > 0) {
+      return data.data;
+    }
+    throw new Error('Empty backend data, falling back to local catalog');
   } catch (err) {
-    console.warn('API fetch failed, falling back to empty feed', err);
-    return { posts: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    // Robust local fallback when backend API is offline
+    let filtered = [...fallbackArticles];
+
+    if (category && category !== 'all') {
+      const catLower = category.toLowerCase();
+      filtered = filtered.filter(
+        a => a.category?.toLowerCase() === catLower ||
+             (a as any).category_id?.toLowerCase() === catLower
+      );
+    }
+
+    if (lang && lang !== 'all') {
+      filtered = filtered.filter(a => (a as any).language === lang);
+    }
+
+    const total = filtered.length;
+    const startIndex = (page - 1) * limit;
+    const sliced = filtered.slice(startIndex, startIndex + limit);
+
+    return {
+      posts: sliced,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }
 
 export async function fetchPostBySlug(slug: string): Promise<Article | null> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
     const res = await fetch(`${API_BASE_URL}/posts/${slug}`, {
+      signal: controller.signal,
       next: { revalidate: 300 },
     });
-    if (!res.ok) return null;
+    clearTimeout(timeout);
+
+    if (!res.ok) throw new Error('Post not found');
     const data = await res.json();
     return data.data;
   } catch (err) {
-    console.warn(`Failed to fetch article ${slug}:`, err);
-    return null;
+    const found = fallbackArticles.find(
+      a => a.slug === slug || a.id === slug || (a as any).article_id === slug
+    );
+    return found || null;
   }
 }
 
-export async function fetchPublicCandidates(limit = 100): Promise<Article[]> {
+export async function fetchPublicCandidates(limit = 100, lang?: string): Promise<Article[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/posts/candidates?limit=${limit}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
+    const res = await fetch(`${API_BASE_URL}/posts/candidates?limit=${limit}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    return data.data.candidates;
+    let candidates: Article[] = data.data.candidates;
+    if (lang && lang !== 'all') {
+      candidates = candidates.filter(a => (a as any).language === lang);
+    }
+    if (candidates.length > 0) return candidates;
+    throw new Error('Empty candidate pool');
   } catch (err) {
-    console.warn('Failed to fetch public candidates pool:', err);
-    return [];
+    let pool = [...fallbackArticles];
+    if (lang && lang !== 'all') {
+      pool = pool.filter(a => (a as any).language === lang);
+    }
+    return pool.slice(0, limit);
   }
 }
 
 export async function fetchCategories(): Promise<Category[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/categories`, { next: { revalidate: 3600 } });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+
+    const res = await fetch(`${API_BASE_URL}/categories`, {
+      signal: controller.signal,
+      next: { revalidate: 3600 },
+    });
+    clearTimeout(timeout);
+
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
     return data.data;
   } catch (err) {
-    console.warn('Failed to fetch categories:', err);
     return [
-      { id: '1', name: 'Artificial Intelligence', slug: 'ai', description: 'Machine learning, neural networks, ethics & compute' },
-      { id: '2', name: 'Sports', slug: 'sports', description: 'Tactics, analytics, football, basketball & athletics' },
-      { id: '3', name: 'World History', slug: 'history', description: 'Civilizations, conflicts, economics & historical analysis' },
+      { id: 'cat-ai-001', name: 'Artificial Intelligence', slug: 'ai', description: 'Machine learning, neural networks, ethics & compute' },
+      { id: 'cat-sports-002', name: 'Sports', slug: 'sports', description: 'Tactics, analytics, football, basketball & athletics' },
+      { id: 'cat-history-003', name: 'World History', slug: 'history', description: 'Civilizations, conflicts, economics & historical analysis' },
     ];
   }
 }

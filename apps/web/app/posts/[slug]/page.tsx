@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { Article } from '@fedsocial/shared-types';
 import { fetchPostBySlug } from '@/lib/api-client';
 import { useReadingTracker } from '@/hooks/use-reading-tracker';
+import { useLanguage } from '@/lib/language-context';
 
 export default function ArticleDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const { lang, t } = useLanguage();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -33,7 +35,7 @@ export default function ArticleDetailPage() {
   }, [slug]);
 
   const tracker = useReadingTracker({
-    articleId: article?.id || 'pending',
+    articleId: article?.id || (article as any)?.article_id || 'pending',
     category: article?.category || 'general',
   });
 
@@ -51,27 +53,33 @@ export default function ArticleDetailPage() {
   if (!article) {
     return (
       <div className="text-center py-24">
-        <h2 className="font-serif text-2xl font-bold text-charcoal-900">Dispatch Not Found</h2>
-        <p className="text-charcoal-500 text-sm mt-2">The requested article could not be retrieved from the catalog.</p>
+        <h2 className="font-serif text-2xl font-bold text-charcoal-900">
+          {lang === 'id' ? 'Artikel Tidak Ditemukan' : 'Dispatch Not Found'}
+        </h2>
+        <p className="text-charcoal-500 text-sm mt-2">
+          {lang === 'id'
+            ? 'Artikel yang diminta tidak dapat ditemukan di katalog.'
+            : 'The requested article could not be retrieved from the catalog.'}
+        </p>
         <Link href="/" className="inline-block mt-4 text-xs font-mono uppercase text-accent hover:underline">
-          ← Return to Editorial Feed
+          {t('back_to_feed')}
         </Link>
       </div>
     );
   }
 
-  const pubDate = article.publishedAt || article.published_at || new Date().toISOString();
-  const dateFormatted = new Date(pubDate).toLocaleDateString('en-US', {
+  const pubDate = article.publishedAt || (article as any).published_at || new Date().toISOString();
+  const dateFormatted = new Date(pubDate).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
 
-  const readMin = article.readingTimeMinutes ?? article.estimated_read_min ?? 5;
-  const authorName = article.author || 'FedSocial Editorial Staff';
+  const readMin = article.readingTimeMinutes ?? (article as any).estimated_read_min ?? 4;
+  const authorName = article.author || (lang === 'id' ? 'Tim Redaksi FedSocial' : 'FedSocial Editorial Staff');
   const summaryText = article.summary || article.excerpt || '';
-  const bodyText = article.content || article.body || '';
-  const words = article.wordCount ?? article.word_count ?? (bodyText ? bodyText.split(/\s+/).length : 0);
+  const bodyText = article.content || (article as any).body || '';
+  const words = article.wordCount ?? (article as any).word_count ?? (bodyText ? bodyText.split(/\s+/).length : 0);
   const tagsList = article.tags || [];
 
   return (
@@ -91,7 +99,7 @@ export default function ArticleDetailPage() {
             href="/"
             className="text-xs font-mono uppercase text-charcoal-500 hover:text-accent transition-colors flex items-center gap-1"
           >
-            ← Back to Dispatches
+            {t('back_to_feed')}
           </Link>
         </div>
 
@@ -102,7 +110,9 @@ export default function ArticleDetailPage() {
             <span>•</span>
             <span>{article.subcategory}</span>
             <span>•</span>
-            <span>{readMin} min read</span>
+            <span>
+              {readMin} {t('read_time')}
+            </span>
           </div>
 
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-charcoal-900 leading-tight mb-4">
@@ -121,25 +131,33 @@ export default function ArticleDetailPage() {
               <span>•</span>
               <time dateTime={pubDate}>{dateFormatted}</time>
             </div>
-            <span>{words} words</span>
+            <span>
+              {words} {t('words')}
+            </span>
           </div>
         </header>
 
         {/* Article Body */}
         <div className="font-serif text-charcoal-800 text-lg leading-relaxed space-y-6 prose prose-stone max-w-none">
           {bodyText ? (
-            bodyText.split('\n\n').map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))
+            String(bodyText)
+              .split('\n\n')
+              .map((paragraph: string, index: number) => (
+                <p key={index}>{paragraph}</p>
+              ))
           ) : (
-            <p className="italic text-charcoal-500">No article body available.</p>
+            <p className="italic text-charcoal-500">
+              {lang === 'id' ? 'Konten artikel tidak tersedia.' : 'No article body available.'}
+            </p>
           )}
         </div>
 
         {/* Tags */}
         {tagsList.length > 0 && (
           <div className="mt-12 pt-6 border-t border-[#EAE7E2] flex flex-wrap items-center gap-2">
-            <span className="text-xs font-mono text-charcoal-500 mr-2">Taxonomy:</span>
+            <span className="text-xs font-mono text-charcoal-500 mr-2">
+              {lang === 'id' ? 'Taksonomi:' : 'Taxonomy:'}
+            </span>
             {tagsList.map((tag, i) => (
               <span
                 key={i}
@@ -157,14 +175,20 @@ export default function ArticleDetailPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
           {/* Active reading telemetry indicator */}
           <div className="flex items-center space-x-3 text-charcoal-700">
-            <span className={`w-2 h-2 rounded-full ${tracker.isIdle ? 'bg-amber-500' : 'bg-emerald animate-pulse'}`}></span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                tracker.isIdle ? 'bg-amber-500' : 'bg-emerald animate-pulse'
+              }`}
+            ></span>
             <span>
-              Active Read: <strong className="text-charcoal-900">{tracker.activeReadingSeconds}s</strong>
-              {tracker.isIdle && ' (Idle)'}
+              {t('dwell_time_label')}{' '}
+              <strong className="text-charcoal-900">{tracker.activeReadingSeconds}s</strong>
+              {tracker.isIdle && (lang === 'id' ? ' (Diam)' : ' (Idle)')}
             </span>
             <span>•</span>
             <span>
-              Depth: <strong className="text-charcoal-900">{tracker.maxScrollDepth}%</strong>
+              {t('scroll_depth_label')}{' '}
+              <strong className="text-charcoal-900">{tracker.maxScrollDepth}%</strong>
             </span>
           </div>
 
@@ -181,7 +205,11 @@ export default function ArticleDetailPage() {
                   : 'bg-surface text-charcoal-700 border-[#EAE7E2] hover:border-accent'
               }`}
             >
-              {liked ? '✓ Liked (Local)' : '♥ Like'}
+              {liked
+                ? lang === 'id'
+                  ? '✓ Disukai (Lokal)'
+                  : '✓ Liked (Local)'
+                : '♥ Suka'}
             </button>
             <button
               onClick={() => {
@@ -194,7 +222,13 @@ export default function ArticleDetailPage() {
                   : 'bg-surface text-charcoal-700 border-[#EAE7E2] hover:border-charcoal-700'
               }`}
             >
-              {bookmarked ? '✓ Saved (Local)' : 'Bookmark'}
+              {bookmarked
+                ? lang === 'id'
+                  ? '✓ Tersimpan (Lokal)'
+                  : '✓ Saved (Local)'
+                : lang === 'id'
+                ? 'Simpan'
+                : 'Bookmark'}
             </button>
           </div>
         </div>

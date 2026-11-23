@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Article } from '@fedsocial/shared-types';
+import { useLanguage } from '@/lib/language-context';
 
 interface ArticleCardProps {
   article: Article & {
@@ -10,6 +13,8 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, featured = false }: ArticleCardProps) {
+  const { lang, t } = useLanguage();
+
   const categoryColors: Record<string, string> = {
     ai: 'text-indigo-800 bg-indigo-50 border-indigo-200',
     sports: 'text-emerald-800 bg-emerald-50 border-emerald-200',
@@ -17,18 +22,19 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
   };
 
   const badgeStyle =
-    categoryColors[article.category.toLowerCase()] || 'text-charcoal-700 bg-stone-100 border-stone-200';
+    categoryColors[article.category?.toLowerCase() || ''] || 'text-charcoal-700 bg-stone-100 border-stone-200';
 
-  const pubDate = article.publishedAt || article.published_at || new Date().toISOString();
-  const dateFormatted = new Date(pubDate).toLocaleDateString('en-US', {
+  const pubDate = article.publishedAt || (article as any).published_at || new Date().toISOString();
+  const dateFormatted = new Date(pubDate).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
 
-  const readMin = article.readingTimeMinutes ?? article.estimated_read_min ?? 5;
-  const authorName = article.author || 'FedSocial Editorial Staff';
+  const readMin = article.readingTimeMinutes ?? (article as any).estimated_read_min ?? 4;
+  const authorName = article.author || (lang === 'id' ? 'Tim Redaksi FedSocial' : 'FedSocial Editorial Staff');
   const excerptText = article.summary || article.excerpt || '';
+  const articleLang = (article as any).language || 'en';
 
   return (
     <article
@@ -43,10 +49,15 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
             <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${badgeStyle} uppercase`}>
               {article.category}
             </span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded border border-[#EAE7E2] bg-stone-50 font-bold">
+              {articleLang === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
+            </span>
             <span>•</span>
-            <span>{article.subcategory}</span>
+            <span className="truncate max-w-[140px] sm:max-w-[200px]">{article.subcategory}</span>
           </div>
-          <span>{readMin} min read</span>
+          <span>
+            {readMin} {t('read_time')}
+          </span>
         </div>
 
         {/* Title */}
@@ -61,30 +72,36 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
           </Link>
         </h3>
 
-        {/* Excerpt / Summary */}
-        <p className="text-charcoal-700 text-sm leading-relaxed mb-4 line-clamp-3">
-          {excerptText}
-        </p>
+        {/* Excerpt */}
+        {excerptText && (
+          <p className="text-charcoal-700 text-sm leading-relaxed line-clamp-3 mb-4 font-sans">
+            {excerptText}
+          </p>
+        )}
       </div>
 
-      {/* Footer Meta & Private Edge Badge */}
-      <div className="pt-3 border-t border-[#F5F3EF] flex flex-wrap items-center justify-between gap-2 text-xs text-charcoal-500">
-        <div className="flex items-center space-x-2 font-mono">
-          <span className="font-medium text-charcoal-800">{authorName}</span>
-          <span>•</span>
-          <time dateTime={pubDate}>{dateFormatted}</time>
-        </div>
-
-        {/* On-device private recommendation indicator */}
-        {article.recommendationScore !== undefined && (
-          <div className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded bg-[#F5F3EF] border border-[#EAE7E2] text-[11px] font-mono text-charcoal-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald"></span>
-            <span>Edge Rank: {(article.recommendationScore * 100).toFixed(0)}%</span>
-            {article.explanation && (
-              <span className="text-[10px] text-charcoal-500 hidden sm:inline">({article.explanation})</span>
-            )}
+      <div>
+        {/* Local Recommendation Match Pill */}
+        {typeof article.recommendationScore === 'number' && (
+          <div className="mb-3 px-2.5 py-1 bg-[#FBF9F6] border border-[#EAE7E2] rounded flex items-center justify-between text-[11px] font-mono text-charcoal-700">
+            <span className="flex items-center gap-1 font-semibold text-accent">
+              <span>★</span>
+              <span>
+                {lang === 'id' ? 'Skor Keselarasan Edge:' : 'Edge Match Score:'}{' '}
+                {(article.recommendationScore * 100).toFixed(0)}%
+              </span>
+            </span>
+            <span className="text-charcoal-500 truncate max-w-[180px]">
+              {article.explanation || (lang === 'id' ? 'Dihitung di browser' : 'In-browser match')}
+            </span>
           </div>
         )}
+
+        {/* Footer Meta */}
+        <div className="flex items-center justify-between pt-3 border-t border-[#F0ECE6] text-xs font-mono text-charcoal-500">
+          <span className="font-medium text-charcoal-800">{authorName}</span>
+          <span>{dateFormatted}</span>
+        </div>
       </div>
     </article>
   );
