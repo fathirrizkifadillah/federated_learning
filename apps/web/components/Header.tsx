@@ -159,14 +159,22 @@ function HeaderContent() {
             {/* Auth / Account Profile */}
             {user ? (
               <div className="flex items-center space-x-2 pl-2 border-l border-[#E8E5DF]">
-                <div className="flex items-center space-x-1.5 text-xs">
-                  <span className="w-7 h-7 rounded-full bg-charcoal-900 text-white flex items-center justify-center font-bold text-xs">
+                <Link
+                  href="/profile"
+                  className={`flex items-center space-x-1.5 text-xs px-2 py-1 rounded transition-colors ${
+                    pathname === '/profile'
+                      ? 'bg-[#ECE8E1] text-charcoal-900 font-bold ring-1 ring-charcoal-900/20'
+                      : 'hover:bg-[#F2EFE9] text-charcoal-800'
+                  }`}
+                  title={lang === 'id' ? 'Profil Pengguna' : 'User Profile'}
+                >
+                  <span className="w-6 h-6 rounded-full bg-charcoal-900 text-white flex items-center justify-center font-bold text-xs">
                     {(user.displayName || user.username || 'U')[0].toUpperCase()}
                   </span>
-                  <span className="font-semibold hidden lg:inline max-w-[100px] truncate text-charcoal-900">
+                  <span className="font-semibold hidden sm:inline max-w-[90px] truncate">
                     {user.displayName || user.username}
                   </span>
-                </div>
+                </Link>
                 <button
                   onClick={logout}
                   className="text-xs text-charcoal-500 hover:text-red-700 hover:underline px-1 py-0.5 font-medium"
@@ -177,7 +185,7 @@ function HeaderContent() {
             ) : (
               <Link
                 href="/login"
-                className={`text-xs font-semibold px-3.5 py-1.5 rounded transition-all shadow-xs ${
+                className={`text-xs font-semibold px-3 py-1.5 rounded transition-all shadow-xs ${
                   pathname === '/login'
                     ? 'bg-accent text-white font-bold ring-2 ring-accent/30'
                     : 'text-white bg-charcoal-900 hover:bg-accent'
@@ -189,13 +197,13 @@ function HeaderContent() {
           </div>
         </div>
 
-        {/* Mobile Sub-Navigation with Clear Active Highlighting */}
-        <nav className="flex md:hidden items-center space-x-2 py-2 overflow-x-auto text-xs font-medium border-t border-[#F0ECE6]">
+        {/* Mobile Sub-Navigation with Clear Active Highlighting & Touch Scrolling */}
+        <nav className="flex md:hidden items-center space-x-1.5 py-2 overflow-x-auto text-xs font-medium border-t border-[#F0ECE6]">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`px-2.5 py-1 rounded whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded whitespace-nowrap transition-colors min-h-[34px] flex items-center ${
                 item.active
                   ? 'bg-charcoal-900 text-white font-bold'
                   : 'text-charcoal-600 hover:bg-[#F2EFE9]'
@@ -204,6 +212,18 @@ function HeaderContent() {
               {item.label}
             </Link>
           ))}
+          {user && (
+            <Link
+              href="/profile"
+              className={`px-3 py-1.5 rounded whitespace-nowrap transition-colors min-h-[34px] flex items-center ${
+                pathname === '/profile'
+                  ? 'bg-charcoal-900 text-white font-bold'
+                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
+              }`}
+            >
+              {lang === 'id' ? 'Profil' : 'Profile'}
+            </Link>
+          )}
         </nav>
       </div>
     </header>

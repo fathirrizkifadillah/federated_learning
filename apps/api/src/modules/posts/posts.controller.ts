@@ -4,12 +4,14 @@ import { PostsService } from './posts.service';
 export class PostsController {
   static async getFeed(req: Request, res: Response, next: NextFunction) {
     try {
-      const { category, limit, cursor, sort, language } = req.query;
-      const parsedLimit = limit ? parseInt(limit as string, 10) : 20;
+      const { category, limit, page, cursor, sort, language } = req.query;
+      const parsedPage = page ? parseInt(page as string, 10) : 1;
+      const parsedLimit = limit ? parseInt(limit as string, 10) : 24;
 
       const result = await PostsService.getFeed({
         category: category as string,
         limit: parsedLimit,
+        page: parsedPage,
         cursor: cursor as string,
         sort: sort as 'latest' | 'trending',
         language: language as string,
@@ -20,7 +22,7 @@ export class PostsController {
         data: {
           posts: result.items,
           pagination: {
-            page: 1,
+            page: parsedPage,
             limit: parsedLimit,
             total: result.total,
             totalPages: Math.ceil(result.total / parsedLimit),

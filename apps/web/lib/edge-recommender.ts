@@ -64,6 +64,49 @@ export async function rankCandidatesOnDevice(
     };
   });
 
-  // Sort descending by score
-  return scored.sort((a, b) => b.recommendationScore - a.recommendationScore);
+  // Initial score ranking
+  const rawSorted = scored.sort((a, b) => b.recommendationScore - a.recommendationScore);
+
+  // Apply Maximal Marginal Relevance (MMR) / Diversity interleaving
+  // Ensures variety across categories and languages in the top recommended items
+  const diversified: ScoredArticle[] = [];
+  const remaining = [...rawSorted];
+
+  while (remaining.length > 0 && diversified.length < candidates.length) {
+    if (diversified.length === 0) {
+      diversified.push(remaining.shift()!);
+      continue;
+    }
+
+    const last = diversified[diversified.length - 1];
+    let bestIndex = 0;
+    let bestAdjustedScore = -Infinity;
+
+    for (let i = 0; i < Math.min(10, remaining.length); i++) {
+      const candidate = remaining[i];
+      let penalty = 1.0;
+
+      // Penalize consecutive same-category articles
+      if (candidate.category.toLowerCase() === last.category.toLowerCase()) {
+        penalty *= 0.75;
+      }
+
+      // Penalize consecutive same-language articles if mixed
+      const candLang = (candidate as any).language;
+      const lastLang = (last as any).language;
+      if (candLang && lastLang && candLang === lastLang) {
+        penalty *= 0.85;
+      }
+
+      const adjustedScore = candidate.recommendationScore * penalty;
+      if (adjustedScore > bestAdjustedScore) {
+        bestAdjustedScore = adjustedScore;
+        bestIndex = i;
+      }
+    }
+
+    diversified.push(remaining.splice(bestIndex, 1)[0]);
+  }
+
+  return diversified;
 }

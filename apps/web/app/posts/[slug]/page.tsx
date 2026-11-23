@@ -1,23 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Heart, Bookmark } from 'lucide-react';
+import { Heart, Bookmark, ExternalLink, X, Lock } from 'lucide-react';
 import { Article } from '@fedsocial/shared-types';
 import { fetchPostBySlug } from '@/lib/api-client';
 import { useReadingTracker } from '@/hooks/use-reading-tracker';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function ArticleDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const { lang, t } = useLanguage();
+  const { user } = useAuth();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [liked, setLiked] = useState<boolean>(false);
   const [bookmarked, setBookmarked] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -35,10 +39,62 @@ export default function ArticleDetailPage() {
     };
   }, [slug]);
 
+  // Check if article is bookmarked by logged in user
+  useEffect(() => {
+    if (user && article) {
+      try {
+        const stored = localStorage.getItem(`fedsocial_saved_articles_${user.id}`);
+        if (stored) {
+          const list: Article[] = JSON.parse(stored);
+          if (list.some((a) => a.id === article.id || (a as any).slug === article.slug)) {
+            setBookmarked(true);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [user, article]);
+
   const tracker = useReadingTracker({
     articleId: article?.id || (article as any)?.article_id || 'pending',
     category: article?.category || 'general',
   });
+
+  const handleLike = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    tracker.recordExplicitFeedback('like');
+    setLiked(!liked);
+  };
+
+  const handleBookmark = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    tracker.recordExplicitFeedback('bookmark');
+    const nextState = !bookmarked;
+    setBookmarked(nextState);
+
+    try {
+      const key = `fedsocial_saved_articles_${user.id}`;
+      const existingStr = localStorage.getItem(key);
+      let list: Article[] = existingStr ? JSON.parse(existingStr) : [];
+      if (nextState && article) {
+        if (!list.some((a) => a.id === article.id)) {
+          list.unshift(article);
+        }
+      } else {
+        list = list.filter((a) => a.id !== article?.id && (a as any).slug !== article?.slug);
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+    } catch (e) {
+      // ignore
+    }
+  };
 
   if (loading) {
     return (
@@ -76,12 +132,15 @@ export default function ArticleDetailPage() {
     year: 'numeric',
   });
 
-  const readMin = article.readingTimeMinutes ?? (article as any).estimated_read_min ?? 4;
   const authorName = article.author || (lang === 'id' ? 'Tim Redaksi FedSocial' : 'FedSocial Editorial Staff');
   const summaryText = article.summary || article.excerpt || '';
   const bodyText = article.content || (article as any).body || '';
-  const words = article.wordCount ?? (article as any).word_count ?? (bodyText ? bodyText.split(/\s+/).length : 0);
   const tagsList = article.tags || [];
+  const referenceList =
+    (article as any).referenceUrls ||
+    (article as any).reference_urls ||
+    (article as any).references ||
+    [];
 
   return (
     <div className="relative">
@@ -93,7 +152,7 @@ export default function ArticleDetailPage() {
         />
       </div>
 
-      <article className="max-w-2xl mx-auto py-6">
+      <article className="max-w-2xl mx-auto py-4 sm:py-6">
         {/* Navigation Breadcrumb */}
         <div className="mb-6">
           <Link
@@ -136,7 +195,7 @@ export default function ArticleDetailPage() {
         </header>
 
         {/* Article Body */}
-        <div className="font-serif text-charcoal-800 text-lg leading-relaxed space-y-6 prose prose-stone max-w-none">
+        <div className="font-serif text-charcoal-800 text-base sm:text-lg leading-relaxed space-y-6 prose prose-stone max-w-none">
           {bodyText ? (
             String(bodyText)
               .split('\n\n')
@@ -152,9 +211,9 @@ export default function ArticleDetailPage() {
 
         {/* Tags */}
         {tagsList.length > 0 && (
-          <div className="mt-12 pt-6 border-t border-[#EAE7E2] flex flex-wrap items-center gap-2">
+          <div className="mt-10 pt-5 border-t border-[#EAE7E2] flex flex-wrap items-center gap-2">
             <span className="text-xs font-mono text-charcoal-500 mr-2">
-              {lang === 'id' ? 'Taksonomi:' : 'Taxonomy:'}
+              {lang === 'id' ? 'Kategori Riset:' : 'Taxonomy:'}
             </span>
             {tagsList.map((tag, i) => (
               <span
@@ -166,20 +225,50 @@ export default function ArticleDetailPage() {
             ))}
           </div>
         )}
+
+        {/* Academic References & Sources Section */}
+        {referenceList.length > 0 && (
+          <div className="mt-10 pt-6 border-t border-[#E8E5DF] bg-[#FAF8F5] p-5 sm:p-6 rounded border border-[#E8E5DF]">
+            <h3 className="font-serif text-sm font-bold text-charcoal-900 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-accent rounded-full"></span>
+              {lang === 'id' ? 'Sumber & Referensi Akademik' : 'Academic Sources & Citations'}
+            </h3>
+            <ul className="space-y-3 text-xs font-mono text-charcoal-700">
+              {referenceList.map((ref: string, idx: number) => {
+                const isUrl = ref.startsWith('http');
+                return (
+                  <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
+                    <span className="text-charcoal-400 font-bold shrink-0">[{idx + 1}]</span>
+                    {isUrl ? (
+                      <a
+                        href={ref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:underline flex items-center gap-1 break-all"
+                      >
+                        <span>{ref}</span>
+                        <ExternalLink className="w-3 h-3 shrink-0 inline" />
+                      </a>
+                    ) : (
+                      <span>{ref}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </article>
 
       {/* Floating Bottom Feedback Action Bar */}
-      <aside className="sticky bottom-6 max-w-2xl mx-auto bg-white/95 border border-[#E8E5DF] rounded-full shadow-md px-6 py-3 backdrop-blur mt-12 z-30 flex items-center justify-between">
-        <span className="text-xs text-charcoal-500 font-sans">
-          {lang === 'id' ? 'Apakah bacaan ini bermanfaat?' : 'Found this insightful?'}
+      <aside className="sticky bottom-4 sm:bottom-6 max-w-xl mx-auto bg-white/95 border border-[#E8E5DF] rounded-full shadow-md px-4 sm:px-6 py-2.5 backdrop-blur mt-12 z-30 flex items-center justify-between">
+        <span className="text-xs text-charcoal-600 font-sans truncate pr-2">
+          {lang === 'id' ? 'Suka artikel ini?' : 'Found this insightful?'}
         </span>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 shrink-0">
           <button
-            onClick={() => {
-              tracker.recordExplicitFeedback('like');
-              setLiked(!liked);
-            }}
+            onClick={handleLike}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
               liked
                 ? 'bg-accent text-white font-semibold'
@@ -191,10 +280,7 @@ export default function ArticleDetailPage() {
           </button>
 
           <button
-            onClick={() => {
-              tracker.recordExplicitFeedback('bookmark');
-              setBookmarked(!bookmarked);
-            }}
+            onClick={handleBookmark}
             className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
               bookmarked
                 ? 'bg-charcoal-900 text-white font-semibold'
@@ -206,6 +292,51 @@ export default function ArticleDetailPage() {
           </button>
         </div>
       </aside>
+
+      {/* Auth Prompt Modal (Required to Like or Bookmark) */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-charcoal-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-[#E8E5DF] rounded-lg shadow-xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                <Lock className="w-4 h-4" />
+              </div>
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="text-charcoal-400 hover:text-charcoal-700 p-1 rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="font-serif text-lg font-bold text-charcoal-900">
+                {lang === 'id' ? 'Masuk Diperlukan' : 'Sign In Required'}
+              </h3>
+              <p className="text-xs text-charcoal-600 mt-1.5 leading-relaxed">
+                {lang === 'id'
+                  ? 'Anda harus masuk ke akun FedSocial terlebih dahulu untuk menyukai atau menyimpan artikel ke koleksi profil pribadi Anda.'
+                  : 'You must be signed in to your FedSocial account to like or bookmark articles to your profile collection.'}
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => router.push(`/login?redirect=/posts/${slug}`)}
+                className="flex-1 py-2 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-semibold transition-colors"
+              >
+                {lang === 'id' ? 'Masuk ke Akun' : 'Sign In'}
+              </button>
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="px-4 py-2 border border-[#DED9D2] hover:bg-[#F5F3EF] text-charcoal-700 rounded text-xs font-medium transition-colors"
+              >
+                {lang === 'id' ? 'Batal' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

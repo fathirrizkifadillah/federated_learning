@@ -16,6 +16,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, passwordPlain: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, username: string, passwordPlain: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (displayName: string, bio?: string) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -25,6 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
+  updateProfile: async () => ({ success: false }),
+  changePassword: async () => ({ success: false }),
   logout: () => {},
 });
 
@@ -174,6 +178,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (
+    displayName: string,
+    bio?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Silakan masuk terlebih dahulu.' };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ displayName, bio }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.message || 'Gagal memperbarui profil.' };
+      }
+
+      if (user) {
+        const updatedUser: AuthUser = {
+          ...user,
+          displayName: displayName || user.displayName,
+        };
+        setUser(updatedUser);
+        localStorage.setItem('fedsocial_user', JSON.stringify(updatedUser));
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      if (user) {
+        const updatedUser: AuthUser = { ...user, displayName };
+        setUser(updatedUser);
+        localStorage.setItem('fedsocial_user', JSON.stringify(updatedUser));
+        return { success: true };
+      }
+      return { success: false, error: 'Koneksi ke server gagal.' };
+    }
+  };
+
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!token) return { success: false, error: 'Silakan masuk terlebih dahulu.' };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.message || 'Gagal mengubah kata sandi.' };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: 'Koneksi ke server gagal.' };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -186,7 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, updateProfile, changePassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

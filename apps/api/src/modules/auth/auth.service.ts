@@ -119,4 +119,50 @@ export class AuthService {
       },
     };
   }
+
+  static async updateProfile(userId: string, data: { displayName?: string; bio?: string }) {
+    const updated = await prisma.userProfile.upsert({
+      where: { userId },
+      update: {
+        displayName: data.displayName,
+        bio: data.bio,
+      },
+      create: {
+        userId,
+        displayName: data.displayName,
+        bio: data.bio,
+      },
+    });
+
+    return {
+      user_id: updated.userId,
+      display_name: updated.displayName,
+      bio: updated.bio,
+      avatar_url: updated.avatarUrl,
+    };
+  }
+
+  static async changePassword(userId: string, currentPlain: string, newPlain: string) {
+    if (!newPlain || newPlain.length < 6) {
+      throw { statusCode: 400, code: 'PASSWORD_TOO_SHORT', message: 'New password must be at least 6 characters.' };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw { statusCode: 404, code: 'USER_NOT_FOUND', message: 'User not found.' };
+    }
+
+    const isValid = await bcrypt.compare(currentPlain, user.passwordHash);
+    if (!isValid) {
+      throw { statusCode: 400, code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect.' };
+    }
+
+    const newHash = await bcrypt.hash(newPlain, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
+
+    return { success: true, message: 'Password updated successfully.' };
+  }
 }

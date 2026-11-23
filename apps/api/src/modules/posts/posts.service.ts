@@ -4,11 +4,14 @@ export class PostsService {
   static async getFeed(options: {
     category?: string;
     limit?: number;
+    page?: number;
     cursor?: string;
     sort?: 'latest' | 'trending';
     language?: string;
   }) {
-    const limit = Math.min(options.limit || 20, 50);
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(Math.max(1, options.limit || 24), 60);
+    const skip = options.cursor ? undefined : (page - 1) * limit;
     const where: any = {};
 
     if (options.category && options.category.toLowerCase() !== 'all') {
@@ -25,7 +28,8 @@ export class PostsService {
       prisma.post.count({ where }),
       prisma.post.findMany({
         where,
-        take: limit + 1,
+        take: limit,
+        ...(skip !== undefined ? { skip } : {}),
         ...(options.cursor ? { skip: 1, cursor: { id: options.cursor } } : {}),
         orderBy: { publishedAt: 'desc' },
         include: {
@@ -62,6 +66,8 @@ export class PostsService {
         estimated_read_min: p.estimatedReadMin,
         readingTimeMinutes: p.estimatedReadMin,
         language: p.language,
+        reference_urls: p.referenceUrls,
+        references: p.referenceUrls,
         published_at: p.publishedAt.toISOString(),
         publishedAt: p.publishedAt.toISOString(),
         image_url: p.images[0]?.imageUrl || null,
@@ -127,6 +133,7 @@ export class PostsService {
         wordCount: true,
         estimatedReadMin: true,
         language: true,
+        referenceUrls: true,
         publishedAt: true,
       },
       orderBy: { publishedAt: 'desc' },
@@ -145,6 +152,8 @@ export class PostsService {
       estimated_read_min: p.estimatedReadMin,
       readingTimeMinutes: p.estimatedReadMin,
       language: p.language,
+      reference_urls: p.referenceUrls,
+      references: p.referenceUrls,
       published_at: p.publishedAt.toISOString(),
       publishedAt: p.publishedAt.toISOString(),
     }));
