@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { Heart, Bookmark } from 'lucide-react';
 import { Article } from '@fedsocial/shared-types';
 import { fetchPostBySlug } from '@/lib/api-client';
 import { useReadingTracker } from '@/hooks/use-reading-tracker';
@@ -185,7 +186,7 @@ export default function ArticleDetailPage() {
                 : 'bg-[#F2EFE9] text-charcoal-800 hover:bg-[#EAE5DD]'
             }`}
           >
-            <span>♥</span>
+            <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
             <span>{liked ? t('liked') : t('like')}</span>
           </button>
 
@@ -200,7 +201,7 @@ export default function ArticleDetailPage() {
                 : 'bg-[#F2EFE9] text-charcoal-800 hover:bg-[#EAE5DD]'
             }`}
           >
-            <span>🔖</span>
+            <Bookmark className={`w-3.5 h-3.5 ${bookmarked ? 'fill-current' : ''}`} />
             <span>{bookmarked ? t('bookmarked') : t('bookmark')}</span>
           </button>
         </div>

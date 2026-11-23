@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
@@ -63,8 +64,8 @@ export default function LoginPage() {
   if (user) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-emerald/20 text-emerald flex items-center justify-center mx-auto text-xl font-bold">
-          ✓
+        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
+          <Check className="w-6 h-6 stroke-[3]" />
         </div>
         <h2 className="font-serif text-2xl font-bold text-charcoal-900">
           {lang === 'id' ? 'Anda Sudah Masuk' : 'You are Logged In'}
@@ -76,7 +77,7 @@ export default function LoginPage() {
         <div className="pt-4 flex justify-center gap-3">
           <Link
             href="/"
-            className="px-4 py-2 bg-charcoal-900 text-white rounded text-xs font-mono uppercase tracking-wider font-semibold"
+            className="px-4 py-2 bg-charcoal-900 text-white rounded text-xs font-mono uppercase tracking-wider font-semibold hover:bg-accent transition-colors"
           >
             {lang === 'id' ? 'Kembali ke Beranda' : 'Return to Feed'}
           </Link>
@@ -119,18 +120,18 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Tab Toggle Login / Register */}
-        <div className="flex border-b border-[#EAE7E2] mb-6">
+        {/* Segmented Control Login / Register with clear active styling */}
+        <div className="flex bg-[#ECE8E1] p-1 rounded-md border border-[#DED9D2] mb-6">
           <button
             type="button"
             onClick={() => {
               setMode('login');
               setError(null);
             }}
-            className={`flex-1 py-2 text-xs font-mono uppercase tracking-wider text-center font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-1.5 text-xs font-mono uppercase tracking-wider text-center transition-all ${
               mode === 'login'
-                ? 'border-charcoal-900 text-charcoal-900'
-                : 'border-transparent text-charcoal-500 hover:text-charcoal-800'
+                ? 'bg-charcoal-900 text-white font-bold rounded shadow-xs'
+                : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
             }`}
           >
             {lang === 'id' ? 'Masuk' : 'Sign In'}
@@ -141,10 +142,10 @@ export default function LoginPage() {
               setMode('register');
               setError(null);
             }}
-            className={`flex-1 py-2 text-xs font-mono uppercase tracking-wider text-center font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-1.5 text-xs font-mono uppercase tracking-wider text-center transition-all ${
               mode === 'register'
-                ? 'border-charcoal-900 text-charcoal-900'
-                : 'border-transparent text-charcoal-500 hover:text-charcoal-800'
+                ? 'bg-charcoal-900 text-white font-bold rounded shadow-xs'
+                : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
             }`}
           >
             {lang === 'id' ? 'Daftar Akun' : 'Register'}
@@ -223,29 +224,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* 1-Click Quick Demo Login */}
+        {/* Quick Demo Login (No Emojis) */}
         <div className="mt-6 pt-5 border-t border-[#F0ECE6]">
           <button
             type="button"
             onClick={handleQuickDemo}
             disabled={submitting}
-            className="w-full py-2 bg-[#FBF9F6] hover:bg-[#F2EFE9] border border-[#DED9D2] text-charcoal-800 rounded text-xs font-mono flex items-center justify-center gap-1.5 transition-colors font-semibold"
+            className="w-full py-2.5 bg-[#F7F5F0] hover:bg-[#EAE6DE] border border-[#DED9D2] text-charcoal-800 rounded text-xs font-semibold flex items-center justify-center transition-colors"
           >
-            <span>⚡</span>
-            <span>
-              {lang === 'id' ? 'Masuk Otomatis Akun Demo (Fathir)' : '1-Click Quick Demo Login (Fathir)'}
-            </span>
+            {lang === 'id' ? 'Masuk Otomatis Akun Demo (Fathir)' : 'Quick Demo Sign In (Fathir)'}
           </button>
-        </div>
-
-        {/* Privacy by Design Assurance Notice */}
-        <div className="mt-6 p-3 bg-[#FAF8F5] border border-[#EAE7E2] rounded text-[11px] font-mono text-charcoal-600 leading-relaxed">
-          <strong className="text-charcoal-800 block mb-1">
-            {lang === 'id' ? 'Jaminan Privasi FedSocial:' : 'FedSocial Privacy Invariant:'}
-          </strong>
-          {lang === 'id'
-            ? 'Akun digunakan semata-mata untuk identitas publik. Riwayat waktu membaca, artikel yang Anda buka, dan preferensi personalisasi TETAP 100% berada di browser Anda tanpa pernah dikirim ke database server.'
-            : 'Account identity is used solely for authentication. All reading duration telemetry, opened articles, and recommendation preferences REMAIN 100% in your browser IndexedDB.'}
         </div>
       </div>
     </div>

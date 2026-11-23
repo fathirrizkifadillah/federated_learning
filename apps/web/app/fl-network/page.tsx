@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useLanguage } from '@/lib/language-context';
 
 interface LocalDaemonStatus {
   online: boolean;
@@ -10,6 +12,7 @@ interface LocalDaemonStatus {
 }
 
 export default function FLNetworkPage() {
+  const { lang } = useLanguage();
   const [daemonStatus, setDaemonStatus] = useState<LocalDaemonStatus>({ online: false });
 
   useEffect(() => {
@@ -43,17 +46,25 @@ export default function FLNetworkPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-4 space-y-8">
+      {/* Back Link */}
+      <div>
+        <Link
+          href="/"
+          className="text-xs font-mono uppercase text-charcoal-500 hover:text-accent transition-colors flex items-center gap-1"
+        >
+          {lang === 'id' ? '← Kembali ke Beranda' : '← Back to Feed'}
+        </Link>
+      </div>
+
       {/* Header */}
-      <div className="border-b border-[#EAE7E2] pb-6">
-        <span className="text-xs font-mono uppercase tracking-widest text-accent font-semibold">
-          Federated Topology & Telemetry
-        </span>
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-charcoal-900 mt-1">
-          Federated Learning Network Console
+      <div className="border-b border-[#E8E5DF] pb-5">
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900">
+          {lang === 'id' ? 'Konsol Jaringan Federated Learning' : 'Federated Learning Network Console'}
         </h1>
-        <p className="text-charcoal-700 text-sm mt-2 max-w-2xl leading-relaxed">
-          Monitor the decentralized coordination protocol. In FedSocial, client nodes train collaborative filtering models
-          locally on private SQLite/IndexedDB logs and broadcast only parameter deltas (ΔW_item) to the Flower aggregator.
+        <p className="text-charcoal-600 text-sm mt-1.5 max-w-2xl leading-relaxed">
+          {lang === 'id'
+            ? 'Pantau arsitektur terdesentralisasi. Model belajar secara lokal di IndexedDB dan hanya delta bobot item yang dikirimkan ke agregator Flower.'
+            : 'Monitor the decentralized coordination protocol. Client nodes train models locally on private logs and broadcast only parameter deltas to Flower.'}
         </p>
       </div>
 

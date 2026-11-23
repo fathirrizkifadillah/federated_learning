@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Settings } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 
-export function Header() {
+function HeaderContent() {
   const { lang, setLang, t } = useLanguage();
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -25,11 +27,14 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const activeCategory =
+    pathname === '/' ? searchParams.get('category') || 'all' : null;
+
   const navItems = [
-    { label: t('nav_all'), href: '/', active: pathname === '/' },
-    { label: t('nav_ai'), href: '/?category=ai', active: false },
-    { label: t('nav_sports'), href: '/?category=sports', active: false },
-    { label: t('nav_history'), href: '/?category=history', active: false },
+    { label: t('nav_all'), href: '/', active: activeCategory === 'all' },
+    { label: t('nav_ai'), href: '/?category=ai', active: activeCategory === 'ai' },
+    { label: t('nav_sports'), href: '/?category=sports', active: activeCategory === 'sports' },
+    { label: t('nav_history'), href: '/?category=history', active: activeCategory === 'history' },
   ];
 
   return (
@@ -44,16 +49,16 @@ export function Header() {
               </span>
             </Link>
 
-            {/* Desktop Navigation Links */}
+            {/* Desktop Navigation Links with High-Contrast Active State */}
             <nav className="hidden md:flex items-center space-x-1 pl-4 border-l border-[#E8E5DF]">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  className={`px-3 py-1.5 text-xs rounded transition-all duration-150 ${
                     item.active
-                      ? 'bg-charcoal-900 text-white font-semibold'
-                      : 'text-charcoal-600 hover:text-charcoal-900 hover:bg-[#F2EFE9]'
+                      ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                      : 'text-charcoal-600 font-medium hover:text-charcoal-900 hover:bg-[#EAE6DE]'
                   }`}
                 >
                   {item.label}
@@ -65,7 +70,7 @@ export function Header() {
           {/* Right Action Bar */}
           <div className="flex items-center space-x-3">
             {/* Language Switcher */}
-            <div className="flex items-center border border-[#DED9D2] rounded bg-white p-0.5 text-xs font-mono shadow-sm">
+            <div className="flex items-center border border-[#DED9D2] rounded bg-white p-0.5 text-xs font-mono shadow-xs">
               <button
                 onClick={() => setLang('id')}
                 className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
@@ -97,11 +102,11 @@ export function Header() {
                 className={`flex items-center space-x-1.5 px-3 py-1.5 border rounded text-xs font-medium transition-colors ${
                   settingsOpen
                     ? 'border-charcoal-900 bg-charcoal-900 text-white'
-                    : 'border-[#DED9D2] bg-white text-charcoal-700 hover:border-charcoal-500'
+                    : 'border-[#DED9D2] bg-white text-charcoal-700 hover:border-charcoal-500 hover:bg-[#F5F3EF]'
                 }`}
                 title={t('btn_settings')}
               >
-                <span>⚙</span>
+                <Settings className="w-3.5 h-3.5 stroke-[2]" />
                 <span className="hidden sm:inline">{t('btn_settings')}</span>
               </button>
 
@@ -119,7 +124,11 @@ export function Header() {
                     <Link
                       href="/edge-data"
                       onClick={() => setSettingsOpen(false)}
-                      className="block px-3 py-2 rounded hover:bg-[#FAF8F5] transition-colors"
+                      className={`block px-3 py-2 rounded transition-colors ${
+                        pathname === '/edge-data'
+                          ? 'bg-[#F2EFE9] font-bold text-charcoal-900'
+                          : 'hover:bg-[#FAF8F5] text-charcoal-800'
+                      }`}
                     >
                       <p className="font-semibold text-charcoal-900">{t('settings_edge_data')}</p>
                       <p className="text-[11px] text-charcoal-500 mt-0.5">{t('settings_edge_desc')}</p>
@@ -128,7 +137,11 @@ export function Header() {
                     <Link
                       href="/fl-network"
                       onClick={() => setSettingsOpen(false)}
-                      className="block px-3 py-2 rounded hover:bg-[#FAF8F5] transition-colors"
+                      className={`block px-3 py-2 rounded transition-colors ${
+                        pathname === '/fl-network'
+                          ? 'bg-[#F2EFE9] font-bold text-charcoal-900'
+                          : 'hover:bg-[#FAF8F5] text-charcoal-800'
+                      }`}
                     >
                       <p className="font-semibold text-charcoal-900">{t('settings_fl_network')}</p>
                       <p className="text-[11px] text-charcoal-500 mt-0.5">{t('settings_fl_desc')}</p>
@@ -156,7 +169,7 @@ export function Header() {
                 </div>
                 <button
                   onClick={logout}
-                  className="text-xs text-charcoal-500 hover:text-red-700 hover:underline px-1 py-0.5"
+                  className="text-xs text-charcoal-500 hover:text-red-700 hover:underline px-1 py-0.5 font-medium"
                 >
                   {t('btn_logout')}
                 </button>
@@ -164,7 +177,11 @@ export function Header() {
             ) : (
               <Link
                 href="/login"
-                className="text-xs font-semibold text-white bg-charcoal-900 hover:bg-accent px-3.5 py-1.5 rounded transition-colors shadow-sm"
+                className={`text-xs font-semibold px-3.5 py-1.5 rounded transition-all shadow-xs ${
+                  pathname === '/login'
+                    ? 'bg-accent text-white font-bold ring-2 ring-accent/30'
+                    : 'text-white bg-charcoal-900 hover:bg-accent'
+                }`}
               >
                 {t('btn_login')}
               </Link>
@@ -172,7 +189,7 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Sub-Navigation */}
+        {/* Mobile Sub-Navigation with Clear Active Highlighting */}
         <nav className="flex md:hidden items-center space-x-2 py-2 overflow-x-auto text-xs font-medium border-t border-[#F0ECE6]">
           {navItems.map((item) => (
             <Link
@@ -180,7 +197,7 @@ export function Header() {
               href={item.href}
               className={`px-2.5 py-1 rounded whitespace-nowrap transition-colors ${
                 item.active
-                  ? 'bg-charcoal-900 text-white font-semibold'
+                  ? 'bg-charcoal-900 text-white font-bold'
                   : 'text-charcoal-600 hover:bg-[#F2EFE9]'
               }`}
             >
@@ -190,5 +207,21 @@ export function Header() {
         </nav>
       </div>
     </header>
+  );
+}
+
+export function Header() {
+  return (
+    <Suspense
+      fallback={
+        <header className="border-b border-[#E8E5DF] bg-[#FDFCFB]/95 h-16 max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+          <span className="font-serif text-2xl font-bold tracking-tight text-charcoal-900">
+            FedSocial
+          </span>
+        </header>
+      }
+    >
+      <HeaderContent />
+    </Suspense>
   );
 }

@@ -78,23 +78,23 @@ function FeedContent() {
         {/* Feed Tabs & Compact Language Filter */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6 pt-4 border-t border-[#F0ECE6]">
           {/* Main Feed Tabs */}
-          <div className="flex items-center space-x-1.5 bg-[#F2EFE9] p-1 rounded-md">
+          <div className="flex items-center space-x-1.5 bg-[#ECE8E1] p-1 rounded-md border border-[#DED9D2]">
             <button
               onClick={() => setActiveTab('for-you')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded transition-all ${
+              className={`px-4 py-1.5 text-xs rounded transition-all duration-150 ${
                 activeTab === 'for-you'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
-                  : 'text-charcoal-600 hover:text-charcoal-900'
+                  ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                  : 'text-charcoal-600 hover:text-charcoal-900 font-medium hover:bg-[#E2DDD5]'
               }`}
             >
               {t('tab_for_you')}
             </button>
             <button
               onClick={() => setActiveTab('latest')}
-              className={`px-4 py-1.5 text-xs font-semibold rounded transition-all ${
+              className={`px-4 py-1.5 text-xs rounded transition-all duration-150 ${
                 activeTab === 'latest'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
-                  : 'text-charcoal-600 hover:text-charcoal-900'
+                  ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                  : 'text-charcoal-600 hover:text-charcoal-900 font-medium hover:bg-[#E2DDD5]'
               }`}
             >
               {t('tab_latest')}
@@ -102,35 +102,33 @@ function FeedContent() {
           </div>
 
           {/* Compact Language Filter */}
-          <div className="flex items-center space-x-1 text-xs">
+          <div className="flex items-center space-x-1 text-xs bg-[#ECE8E1] p-0.5 rounded-md border border-[#DED9D2]">
             <button
               onClick={() => setLangFilter('all')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-3 py-1 rounded text-xs transition-colors ${
                 langFilter === 'all'
-                  ? 'bg-charcoal-900 text-white font-semibold'
-                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
+                  ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                  : 'text-charcoal-600 hover:text-charcoal-900 font-medium hover:bg-[#E2DDD5]'
               }`}
             >
               {t('filter_lang_all')}
             </button>
-            <span className="text-charcoal-300">•</span>
             <button
               onClick={() => setLangFilter('id')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-3 py-1 rounded text-xs transition-colors ${
                 langFilter === 'id'
-                  ? 'bg-charcoal-900 text-white font-semibold'
-                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
+                  ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                  : 'text-charcoal-600 hover:text-charcoal-900 font-medium hover:bg-[#E2DDD5]'
               }`}
             >
               {t('filter_lang_id')}
             </button>
-            <span className="text-charcoal-300">•</span>
             <button
               onClick={() => setLangFilter('en')}
-              className={`px-2.5 py-1 rounded transition-colors ${
+              className={`px-3 py-1 rounded text-xs transition-colors ${
                 langFilter === 'en'
-                  ? 'bg-charcoal-900 text-white font-semibold'
-                  : 'text-charcoal-600 hover:bg-[#F2EFE9]'
+                  ? 'bg-charcoal-900 text-white font-bold shadow-xs'
+                  : 'text-charcoal-600 hover:text-charcoal-900 font-medium hover:bg-[#E2DDD5]'
               }`}
             >
               {t('filter_lang_en')}
