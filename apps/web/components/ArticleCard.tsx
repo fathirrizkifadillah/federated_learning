@@ -26,7 +26,8 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
     year: 'numeric',
   });
 
-  const authorName = article.author || (lang === 'id' ? 'Redaksi FedSocial' : 'FedSocial Staff');
+  const rawAuthor = article.author || (lang === 'id' ? 'Redaksi Y News' : 'Y News Editorial');
+  const authorName = rawAuthor.replace(/FedSocial/gi, 'Y News');
   const excerptText = article.summary || article.excerpt || '';
 
   return (

@@ -199,7 +199,8 @@ export default function ArticleDetailPage() {
   });
 
   const catLabel = getCategoryLabel(article.category, (article as any).category_slug, lang);
-  const authorName = article.author || (lang === 'id' ? 'Tim Redaksi FedSocial' : 'FedSocial Editorial Staff');
+  const rawAuthor = article.author || (lang === 'id' ? 'Tim Redaksi Y News' : 'Y News Editorial Staff');
+  const authorName = rawAuthor.replace(/FedSocial/gi, 'Y News');
   const summaryText = article.summary || article.excerpt || '';
   const bodyText = article.content || (article as any).body || '';
   const tagsList = article.tags || [];

@@ -2,7 +2,7 @@ export type Language = 'id' | 'en';
 
 export const translations = {
   id: {
-    site_title: 'FedSocial',
+    site_title: 'Y News',
     nav_all: 'Semua',
     nav_ai: 'Kecerdasan Buatan',
     nav_sports: 'Olahraga',
@@ -35,7 +35,7 @@ export const translations = {
     bookmarked: 'Tersimpan',
   },
   en: {
-    site_title: 'FedSocial',
+    site_title: 'Y News',
     nav_all: 'All',
     nav_ai: 'Artificial Intelligence',
     nav_sports: 'Sports',

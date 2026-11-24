@@ -35,7 +35,7 @@ app.use('/api/v1/events', (req: Request, res: Response) => {
   return res.status(403).json({
     error: 'PRIVACY_VIOLATION_BLOCKED',
     message:
-      'Centralized event tracking is strictly forbidden under FedSocial V2 Privacy by Design architecture. All behavioral signals must remain in local browser IndexedDB or edge SQLite.',
+      'Centralized event tracking is strictly forbidden under Y News Privacy by Design architecture. All behavioral signals must remain in local browser IndexedDB or edge SQLite.',
   });
 });
 
@@ -43,7 +43,7 @@ app.use('/api/v1/events', (req: Request, res: Response) => {
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'HEALTHY',
-    service: 'fedsocial-api',
+    service: 'ynews-api',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
   });

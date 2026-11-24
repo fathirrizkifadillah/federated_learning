@@ -44,7 +44,7 @@ function HeaderContent() {
           <div className="flex items-center space-x-5 min-w-0">
             <Link href="/" className="group flex items-center shrink-0">
               <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-charcoal-900 group-hover:text-accent transition-colors">
-                FedSocial
+                Y News
               </span>
             </Link>
 
@@ -254,7 +254,7 @@ export function Header() {
       fallback={
         <header className="border-b border-[#E8E5DF] bg-[#FDFCFB]/95 h-14 sm:h-16 max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-charcoal-900">
-            FedSocial
+            Y News
           </span>
         </header>
       }

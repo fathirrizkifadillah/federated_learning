@@ -5,9 +5,9 @@ import { LanguageProvider } from '@/lib/language-context';
 import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
-  title: 'FedSocial — Editorial Reading & Federated Learning Research',
+  title: 'Y News — Editorial Reading & Federated Learning',
   description:
-    'A privacy-preserving personalized reading platform powered by On-Device Edge Recommendation and Federated Learning.',
+    'A privacy-preserving personalized news & reading platform powered by On-Device Edge Recommendation and Federated Learning.',
 };
 
 export default function RootLayout({
@@ -27,12 +27,12 @@ export default function RootLayout({
             <footer className="border-t border-[#E8E5DF] bg-[#FAF8F5] py-8 mt-16 text-xs text-charcoal-500">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center space-x-2">
-                  <span className="font-serif font-bold text-charcoal-800 text-sm">FedSocial</span>
+                  <span className="font-serif font-bold text-charcoal-800 text-sm">Y News</span>
                   <span className="text-charcoal-400">•</span>
                   <span>Platform Baca & Publikasi Kurasi</span>
                 </div>
                 <div className="text-charcoal-500 text-[11px]">
-                  © {new Date().getFullYear()} FedSocial. Hak Cipta Dilindungi.
+                  © {new Date().getFullYear()} Y News. Hak Cipta Dilindungi.
                 </div>
               </div>
             </footer>

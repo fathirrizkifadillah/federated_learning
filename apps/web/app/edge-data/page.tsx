@@ -54,7 +54,7 @@ export default function EdgeDataPage() {
       encodeURIComponent(JSON.stringify({ profile, events }, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `fedsocial_edge_data_${Date.now()}.json`);
+    downloadAnchor.setAttribute('download', `ynews_edge_data_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
