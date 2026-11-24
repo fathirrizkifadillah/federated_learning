@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { Header } from '@/components/Header';
+import { BrandLogo } from '@/components/BrandLogo';
 import { LanguageProvider } from '@/lib/language-context';
 import { AuthProvider } from '@/lib/auth-context';
 
@@ -26,8 +27,8 @@ export default function RootLayout({
             </main>
             <footer className="border-t border-[#E8E5DF] bg-[#FAF8F5] py-8 mt-16 text-xs text-charcoal-500">
               <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center space-x-2">
-                  <span className="font-serif font-bold text-charcoal-800 text-sm">Y News</span>
+                <div className="flex items-center space-x-2.5">
+                  <BrandLogo size="sm" />
                   <span className="text-charcoal-400">•</span>
                   <span>Platform Baca & Publikasi Kurasi</span>
                 </div>

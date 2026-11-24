@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Settings, User, LogOut } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
+import { BrandLogo } from '@/components/BrandLogo';
 
 function HeaderContent() {
   const { lang, setLang, t } = useLanguage();
@@ -42,10 +43,8 @@ function HeaderContent() {
         <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
           {/* Logo + Desktop Nav */}
           <div className="flex items-center space-x-5 min-w-0">
-            <Link href="/" className="group flex items-center shrink-0">
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-charcoal-900 group-hover:text-accent transition-colors">
-                Y News
-              </span>
+            <Link href="/" className="group flex items-center shrink-0" aria-label="Y News Home">
+              <BrandLogo size="md" />
             </Link>
 
             <nav className="hidden md:flex items-center space-x-1 pl-4 border-l border-[#E8E5DF]">
@@ -253,9 +252,7 @@ export function Header() {
     <Suspense
       fallback={
         <header className="border-b border-[#E8E5DF] bg-[#FDFCFB]/95 h-14 sm:h-16 max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-charcoal-900">
-            Y News
-          </span>
+          <BrandLogo size="md" />
         </header>
       }
     >
