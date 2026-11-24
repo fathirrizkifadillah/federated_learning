@@ -7,9 +7,13 @@ across the entire 5,400+ article PostgreSQL catalog.
 """
 
 import datetime
+import os
 import psycopg2
 
-DB_URL = "postgresql://unpanda_app:unpanda_secure_pass_2026@localhost:5432/fedsocial_db"
+DB_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://fedsocial:fedsocial_secret@localhost:5432/fedsocial_db",
+).split("?")[0]
 
 FLAGSHIP_ARTICLES = [
     # --- AI (ID) ---

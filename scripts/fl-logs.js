@@ -29,6 +29,11 @@ function sha256Short(raw) {
 async function loadDevUsernameMap() {
   if (!resolveUsernames) return new Map();
   try {
+    try {
+      require('dotenv').config({ path: path.join(REPO_ROOT, 'apps', 'api', '.env') });
+    } catch {
+      // dotenv optional if DATABASE_URL is already in env
+    }
     const { PrismaClient } = require(path.join(REPO_ROOT, 'node_modules', '@prisma', 'client'));
     const prisma = new PrismaClient();
     const users = await prisma.user.findMany({ select: { id: true, username: true } });
