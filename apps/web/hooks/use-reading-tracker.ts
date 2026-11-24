@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { recordLocalEvent } from '@/lib/indexed-db';
+import { normalizeCategorySlug } from '@/lib/categories';
 import { LocalEvent, EventType } from '@fedsocial/shared-types';
+
+const LOCAL_AGENT_URL = process.env.NEXT_PUBLIC_LOCAL_AGENT_URL || 'http://127.0.0.1:4848';
 
 interface ReadingTrackerOptions {
   articleId: string;
@@ -25,9 +28,14 @@ export function useReadingTracker({
   const idleTimerRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef<number>(0);
   const maxScrollRef = useRef<number>(0);
+  const isIdleRef = useRef<boolean>(false);
 
-  // Helper to record local event safely
+  const normalizedCat = normalizeCategorySlug(category);
+
+  // Helper to record local event safely (IndexedDB + optional localhost 127.0.0.1 FL daemon)
   const dispatchLocal = (type: EventType, extraMetadata = {}) => {
+    if (!articleId || articleId === 'pending') return;
+
     const uuid = crypto.randomUUID();
     const nowIso = new Date().toISOString();
     const event: LocalEvent = {
@@ -51,28 +59,58 @@ export function useReadingTracker({
       window_focused: document.hasFocus ? document.hasFocus() : true,
       content_word_count: 0,
       metadata: {
-        category,
+        category: normalizedCat,
         ...extraMetadata,
       },
     };
+
     recordLocalEvent(event).catch(console.error);
+
+    // Strictly loopback (127.0.0.1) sync to optional local Python FL daemon for live terminal logs
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 800);
+      fetch(`${LOCAL_AGENT_URL}/api/v1/sync-event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: uuid,
+          article_id: articleId,
+          category: normalizedCat,
+          event_type: type,
+          timestamp: Date.now(),
+          duration_ms: accumulatedMsRef.current,
+          scroll_depth: maxScrollRef.current,
+        }),
+        signal: controller.signal,
+      })
+        .catch(() => {
+          // Local agent daemon is optional; silently ignore if offline
+        })
+        .finally(() => clearTimeout(t));
+    } catch {
+      // Ignore loopback sync failure
+    }
   };
 
   useEffect(() => {
+    if (!articleId || articleId === 'pending') return;
+
     // Reset trackers for new article
     accumulatedMsRef.current = 0;
     maxScrollRef.current = 0;
+    isIdleRef.current = false;
     setActiveReadingMs(0);
     setMaxScrollDepth(0);
     setIsIdle(false);
     lastActiveTimestampRef.current = Date.now();
 
-    // 1. Record impression event on mount
+    // 1. Record impression event once articleId is valid
     dispatchLocal('impression');
 
     // Timer tick every 500ms to accumulate active reading time
     const tickInterval = window.setInterval(() => {
-      if (!document.hidden && !isIdle) {
+      if (!document.hidden && !isIdleRef.current) {
         const now = Date.now();
         const delta = now - lastActiveTimestampRef.current;
         accumulatedMsRef.current += delta;
@@ -86,13 +124,15 @@ export function useReadingTracker({
     // Activity reset callback for idle detection
     const handleActivity = () => {
       lastActiveTimestampRef.current = Date.now();
-      if (isIdle) {
+      if (isIdleRef.current) {
+        isIdleRef.current = false;
         setIsIdle(false);
       }
       if (idleTimerRef.current) {
         window.clearTimeout(idleTimerRef.current);
       }
       idleTimerRef.current = window.setTimeout(() => {
+        isIdleRef.current = true;
         setIsIdle(true);
       }, idleTimeoutMs);
     };
@@ -116,26 +156,26 @@ export function useReadingTracker({
     // Visibility listener
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        isIdleRef.current = true;
         setIsIdle(true);
       } else {
         lastActiveTimestampRef.current = Date.now();
+        isIdleRef.current = false;
         setIsIdle(false);
       }
     };
 
-    // Attach listeners
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('mousemove', handleActivity, { passive: true });
     window.addEventListener('keydown', handleActivity, { passive: true });
     window.addEventListener('touchstart', handleActivity, { passive: true });
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Initial idle timer
     idleTimerRef.current = window.setTimeout(() => {
+      isIdleRef.current = true;
       setIsIdle(true);
     }, idleTimeoutMs);
 
-    // Cleanup and flush dwell event on unmount
     return () => {
       window.clearInterval(tickInterval);
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
@@ -145,7 +185,6 @@ export function useReadingTracker({
       window.removeEventListener('touchstart', handleActivity);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-      // Record final dwell event if user engaged for more than 1 second
       if (accumulatedMsRef.current > 1000) {
         dispatchLocal('dwell', {
           finalScrollDepth: maxScrollRef.current,
@@ -153,7 +192,8 @@ export function useReadingTracker({
         });
       }
     };
-  }, [articleId, category, userId, idleTimeoutMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articleId, normalizedCat, userId, idleTimeoutMs]);
 
   const recordExplicitFeedback = (type: 'like' | 'bookmark' | 'share') => {
     dispatchLocal(type);

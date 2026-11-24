@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { LocalEvent } from '@fedsocial/shared-types';
 import { getLocalEvents, getLocalProfile, clearLocalEdgeData, LocalUserProfile } from '@/lib/indexed-db';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 
 export default function EdgeDataPage() {
   const { lang } = useLanguage();
+  const { user } = useAuth();
   const [events, setEvents] = useState<LocalEvent[]>([]);
   const [profile, setProfile] = useState<LocalUserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -15,7 +18,8 @@ export default function EdgeDataPage() {
   async function loadEdgeState() {
     setLoading(true);
     const evts = await getLocalEvents(50);
-    const prof = await getLocalProfile('local-user-guest');
+    const activeUserId = user?.id || 'local-user-guest';
+    const prof = (await getLocalProfile(activeUserId)) || (await getLocalProfile('local-user-guest'));
     setEvents(evts);
     setProfile(prof || null);
     setLoading(false);
@@ -23,7 +27,8 @@ export default function EdgeDataPage() {
 
   useEffect(() => {
     loadEdgeState();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const handleClear = async () => {
     const confirmMsg =
@@ -54,9 +59,10 @@ export default function EdgeDataPage() {
       <div>
         <Link
           href="/"
-          className="text-xs font-mono uppercase text-charcoal-500 hover:text-accent transition-colors flex items-center gap-1"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-charcoal-600 hover:text-charcoal-900 transition-colors"
         >
-          {lang === 'id' ? '← Kembali ke Beranda' : '← Back to Feed'}
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{lang === 'id' ? 'Kembali ke Beranda' : 'Back to Feed'}</span>
         </Link>
       </div>
 
@@ -73,7 +79,7 @@ export default function EdgeDataPage() {
       </div>
 
       {/* On-Device Profile Weights */}
-      <div className="border border-[#E8E5DF] bg-white p-6 rounded shadow-xs">
+      <div className="border border-[#E8E5DF] bg-white p-5 sm:p-6 rounded-md shadow-sm">
         <h2 className="font-serif text-lg font-bold text-charcoal-900 mb-1">
           {lang === 'id' ? 'Vektor Afinitas Lokal Perangkat' : 'On-Device Affinity Vector'}
         </h2>
@@ -145,7 +151,7 @@ export default function EdgeDataPage() {
       </div>
 
       {/* Local Events Clean Table (No repetitive badge spam) */}
-      <div className="border border-[#E8E5DF] bg-white rounded shadow-xs overflow-hidden">
+      <div className="border border-[#E8E5DF] bg-white rounded-md shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
             <thead className="bg-[#FAF8F5] border-b border-[#E8E5DF] text-charcoal-700 uppercase">

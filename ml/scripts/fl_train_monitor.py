@@ -1,96 +1,250 @@
 """
 fl_train_monitor.py
-Python CLI Monitor & Logger for FedSocial V2 Federated Learning Training
+Real PyTorch Federated Learning (Masked FedProx / FedAvg) Terminal Runner & Logger.
+Executes genuine on-device BPR optimization over ml/data/processed/ Dirichlet Non-IID partitions,
+aggregates ONLY decoupled shared item projection & neural interaction layers (0 bytes user embedding leakage),
+evaluates real Leave-Last-2-Out NDCG@10, HR@10, MRR, and Client Gini Coefficient,
+and streams structured logs to stdout and logs/federated_learning.log.
 """
 
-import sys
-import time
+import argparse
+import copy
+import json
 import os
 import random
+import sys
+import time
 from datetime import datetime
 
-LOGS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "logs")
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, REPO_ROOT)
+
+import numpy as np
+import torch
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+from ml.src.data.dataset import RecSysDataPipeline, BPRDataset
+from ml.src.models.content_aware import ContentAwareNeuralRecommender
+from ml.src.evaluation.metrics import hit_rate_at_k, ndcg_at_k, mrr, gini_coefficient
+
+LOGS_DIR = os.path.join(REPO_ROOT, "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOGS_DIR, "federated_training.log")
+LOG_FILE = os.path.join(LOGS_DIR, "federated_learning.log")
 
-CLIENT_NODES = [
-    {"id": "client-jkt-01", "region": "DKI Jakarta", "events": 1420},
-    {"id": "client-bdg-02", "region": "Bandung (Jabar)", "events": 980},
-    {"id": "client-sby-03", "region": "Surabaya (Jatim)", "events": 1150},
-    {"id": "client-ygy-04", "region": "DI Yogyakarta", "events": 820},
-    {"id": "client-mdn-05", "region": "Medan (Sumut)", "events": 740},
-    {"id": "client-smg-06", "region": "Semarang (Jateng)", "events": 630},
-    {"id": "client-dps-07", "region": "Denpasar (Bali)", "events": 890},
-    {"id": "client-mks-08", "region": "Makassar (Sulsel)", "events": 710},
-]
 
-def log_to_file(msg: str):
-    ts = datetime.now().isoformat()
+def write_log(line: str):
+    ts = datetime.now().isoformat(timespec="seconds")
     with open(LOG_FILE, "a", encoding="utf-8") as f:
-        f.write(f"[{ts}] {msg}\n")
+        f.write(f"[{ts}] {line}\n")
+
+
+def evaluate_model(model, test_df, user2idx, item2idx, user_pos_items, num_items):
+    model.eval()
+    hr_list, ndcg_list, mrr_list = [], [], []
+    with torch.no_grad():
+        for _, row in test_df.iterrows():
+            u_id = row["user_id"]
+            a_id = row["article_id"]
+            if u_id not in user2idx or a_id not in item2idx:
+                continue
+            u_idx = user2idx[u_id]
+            pos_idx = item2idx[a_id]
+            user_pos = user_pos_items.get(u_idx, set())
+            cands = [pos_idx]
+            while len(cands) < 100:
+                c = random.randint(0, num_items - 1)
+                if c not in user_pos and c not in cands:
+                    cands.append(c)
+            cand_t = torch.tensor(cands, dtype=torch.long)
+            u_t = torch.tensor([u_idx] * len(cands), dtype=torch.long)
+            scores = model.score_pair(
+                model.user_embeddings(u_t),
+                model.get_item_representation(cand_t),
+            ).cpu().numpy()
+            ranked = [cands[i] for i in np.argsort(-scores)]
+            hr_list.append(hit_rate_at_k(pos_idx, ranked, k=10))
+            ndcg_list.append(ndcg_at_k(pos_idx, ranked, k=10))
+            mrr_list.append(mrr(pos_idx, ranked))
+    return (
+        float(np.mean(ndcg_list)),
+        float(np.mean(hr_list)),
+        float(np.mean(mrr_list)),
+        float(gini_coefficient(ndcg_list)),
+    )
+
 
 def main():
-    print("\033[36m╔═══════════════════════════════════════════════════════════════════════════════╗\033[0m")
-    print("\033[36m║   FEDSOCIAL V2 — FEDERATED RECSYS COORDINATION & TRAINING MONITOR (CLI)       ║\033[0m")
-    print("\033[36m║   Protocol: Flower FedAvg / FedProx (μ = 0.01) • Item Projection Delta        ║\033[0m")
-    print("\033[36m║   Privacy Invariant: Zero Raw Reading Telemetry Uploaded (0 Bytes Leakage)    ║\033[0m")
-    print("\033[36m╚═══════════════════════════════════════════════════════════════════════════════╝\033[0m")
-    print(f"\n\033[90m[Logger] Streaming structured logs to: {LOG_FILE}\033[0m\n")
+    parser = argparse.ArgumentParser(description="FedSocial V2 Real PyTorch FL Terminal Monitor")
+    parser.add_argument("--rounds", type=int, default=6, help="Number of FL communication rounds (default: 6)")
+    parser.add_argument("--clients", type=int, default=5, help="Clients sampled per round (default: 5)")
+    parser.add_argument("--mu", type=float, default=0.01, help="FedProx proximal weight mu (default: 0.01)")
+    args = parser.parse_args()
 
-    log_to_file("--- PYTHON FL MONITOR SESSION STARTED ---")
+    random.seed(42)
+    np.random.seed(42)
+    torch.manual_seed(42)
 
-    ndcg = 0.2850
-    hr = 0.4420
-    loss = 0.6930
-    gini = 0.4120
-    total_rounds = 15
+    print("\033[36m================================================================================\033[0m")
+    print("\033[36m  FEDSOCIAL V2 — REAL PYTORCH FEDERATED LEARNING TERMINAL MONITOR\033[0m")
+    print(f"\033[36m  Strategy: Masked FedProx (mu={args.mu}) | Decoupled Item Projection Sync\033[0m")
+    print("\033[36m  Privacy Invariant: User Embeddings Stay Strictly Local (0 Bytes Uploaded)\033[0m")
+    print("\033[36m================================================================================\033[0m")
+    print(f"\033[90m[Log File] {LOG_FILE}\033[0m\n")
 
-    for r in range(1, total_rounds + 1):
-        ts = datetime.now().strftime("%H:%M:%S")
-        print("\033[33m─────────────────────────────────────────────────────────────────────────────────\033[0m")
-        print(f"\033[1m\033[32m▶ COMMUNICATION ROUND {r}/{total_rounds}\033[0m \033[90m[{ts}]\033[0m")
-        print("\033[33m─────────────────────────────────────────────────────────────────────────────────\033[0m")
+    write_log(f"=== REAL PYTORCH FL SESSION STARTED (rounds={args.rounds}, mu={args.mu}) ===")
 
-        log_to_file(f"ROUND {r}/{total_rounds} INITIATED")
-        selected = random.sample(CLIENT_NODES, k=4)
-        print(f"  \033[1mCentral Orchestrator:\033[0m Selected {len(selected)} edge client nodes for local BPR optimization")
-        time.sleep(0.3)
+    processed_dir = os.path.join(REPO_ROOT, "ml", "data", "processed")
+    pipeline = RecSysDataPipeline(
+        articles_path=os.path.join(processed_dir, "articles.json"),
+        interactions_path=os.path.join(processed_dir, "interactions.csv"),
+        embeddings_path=os.path.join(processed_dir, "article_embeddings.npy"),
+    )
+    with open(os.path.join(processed_dir, "federated_partitions.json"), "r", encoding="utf-8") as f:
+        partitions = json.load(f)["non_iid_partitions"]
 
-        for client in selected:
-            l_start = round(loss + random.uniform(-0.02, 0.02), 4)
-            l_end = round(l_start * 0.88 - random.uniform(0.005, 0.015), 4)
-            payload = round(184.2 + random.uniform(-0.4, 0.4), 1)
+    all_train_triplets = pipeline.get_bpr_triplets(split="train", num_negatives=1)
+    client_triplets = {}
+    for cid, pdata in partitions.items():
+        c_user_indices = {pipeline.user2idx[u] for u in pdata["users"] if u in pipeline.user2idx}
+        client_triplets[cid] = [t for t in all_train_triplets if t[0] in c_user_indices]
 
+    print(
+        f"[Dataset] Users={pipeline.num_users} | Items={pipeline.num_items} | "
+        f"Embeddings={pipeline.item_embeddings.shape} | Non-IID Clients={len(partitions)}"
+    )
+    write_log(f"Dataset loaded: users={pipeline.num_users}, items={pipeline.num_items}, clients={len(partitions)}")
+
+    global_model = ContentAwareNeuralRecommender(
+        num_users=pipeline.num_users,
+        num_items=pipeline.num_items,
+        pretrained_embeddings=torch.tensor(pipeline.item_embeddings, dtype=torch.float32),
+        latent_dim=64,
+        mlp_hidden_dim=64,
+    )
+
+    shared_keys = [
+        k for k in global_model.state_dict().keys()
+        if not k.startswith("user_embeddings") and not k.startswith("pretrained_item_embeddings")
+    ]
+    payload_bytes = sum(global_model.state_dict()[k].numel() * 4 for k in shared_keys)
+    user_emb_bytes = global_model.user_embeddings.weight.numel() * 4
+
+    print(
+        f"[Privacy Audit] Shared Sync Payload: {payload_bytes / 1024:.2f} KB ({len(shared_keys)} tensors) | "
+        f"Blocked Local User Embeddings: {user_emb_bytes / 1024:.2f} KB | Raw Telemetry Uploaded: 0 B\n"
+    )
+    write_log(
+        f"Privacy Audit: shared_payload_kb={payload_bytes/1024:.2f}, "
+        f"blocked_user_emb_kb={user_emb_bytes/1024:.2f}, raw_telemetry_sent=0B"
+    )
+
+    client_ids = list(partitions.keys())
+    # Keep per-client private user embeddings strictly isolated per client
+    client_user_embs = {
+        cid: global_model.user_embeddings.weight.detach().clone() for cid in client_ids
+    }
+
+    for r in range(1, args.rounds + 1):
+        t0 = time.time()
+        sampled_clients = random.sample(client_ids, k=min(args.clients, len(client_ids)))
+        ts_now = datetime.now().strftime("%H:%M:%S")
+        print(f"\033[33m--- ROUND {r}/{args.rounds} [{ts_now}] ----------------------------------------------------\033[0m")
+        write_log(f"ROUND {r}/{args.rounds} START: clients={sampled_clients}")
+
+        global_shared_state = {k: global_model.state_dict()[k].clone().detach() for k in shared_keys}
+        accum_state = {k: torch.zeros_like(v) for k, v in global_shared_state.items()}
+        total_samples = 0
+
+        for cid in sampled_clients:
+            triplets = client_triplets.get(cid, [])
+            if not triplets:
+                continue
+
+            local_model = copy.deepcopy(global_model)
+            with torch.no_grad():
+                local_model.user_embeddings.weight.copy_(client_user_embs[cid])
+
+            local_model.train()
+            optimizer = optim.Adam(local_model.parameters(), lr=0.005, weight_decay=1e-5)
+            loader = DataLoader(BPRDataset(triplets), batch_size=32, shuffle=True)
+
+            epoch_losses = []
+            for _ in range(2):
+                batch_losses = []
+                for u, pos, neg, w in loader:
+                    optimizer.zero_grad()
+                    pos_s, neg_s, u_e, pos_e, neg_e = local_model(u, pos, neg)
+                    loss = local_model.compute_bpr_loss(pos_s, neg_s, u_e, pos_e, neg_e, weights=w)
+                    if args.mu > 0:
+                        prox = 0.0
+                        for name, param in local_model.named_parameters():
+                            if name in global_shared_state:
+                                prox = prox + torch.sum((param - global_shared_state[name]) ** 2)
+                        loss = loss + 0.5 * args.mu * prox
+                    loss.backward()
+                    optimizer.step()
+                    batch_losses.append(loss.item())
+                epoch_losses.append(float(np.mean(batch_losses)))
+
+            # Persist updated private user embeddings strictly locally
+            client_user_embs[cid] = local_model.user_embeddings.weight.detach().clone()
+
+            # Aggregate ONLY shared item projection & neural interaction weights
+            n_k = len(triplets)
+            total_samples += n_k
+            local_state = local_model.state_dict()
+            for k in shared_keys:
+                accum_state[k] += local_state[k].detach() * n_k
+
+            top_cat = max(partitions[cid]["category_shares"].items(), key=lambda x: x[1])[0]
             print(
-                f"    \033[34m• [{client['id']}]\033[0m {client['region']:<18} | "
-                f"Local Epochs: 3/3 | Loss: {l_start:.4f} → \033[32m{l_end:.4f}\033[0m | "
-                f"ΔW: {payload} KB | \033[32m0 B Raw Uploads\033[0m"
+                f"  \033[34m• [{cid:<8}]\033[0m dom={top_cat:<7} | triplets={n_k:<4} | "
+                f"BPR Loss: {epoch_losses[0]:.4f} -> \033[32m{epoch_losses[-1]:.4f}\033[0m | "
+                f"Delta={payload_bytes/1024:.1f} KB | \033[32mUserEmb Sent=0 B\033[0m"
             )
-            log_to_file(f"  Client {client['id']} ({client['region']}): local_loss={l_end}, delta_kb={payload}, raw_telemetry_sent=0B")
-            time.sleep(0.2)
+            write_log(
+                f"  Client {cid} (dom={top_cat}): triplets={n_k}, "
+                f"loss={epoch_losses[0]:.4f}->{epoch_losses[-1]:.4f}, delta_kb={payload_bytes/1024:.1f}, user_leakage=0B"
+            )
 
-        print(f"\n  \033[35m[Flower Aggregator]\033[0m Aggregating client parameter deltas with proximal regularizer μ = 0.01...")
-        time.sleep(0.4)
+        if total_samples > 0:
+            new_global_state = global_model.state_dict()
+            for k in shared_keys:
+                new_global_state[k] = accum_state[k] / total_samples
+            # Stitch each client's local user rows only in evaluation harness (server never sees them)
+            merged_user_w = global_model.user_embeddings.weight.detach().clone()
+            for cid, pdata in partitions.items():
+                for u in pdata["users"]:
+                    if u in pipeline.user2idx:
+                        uidx = pipeline.user2idx[u]
+                        merged_user_w[uidx] = client_user_embs[cid][uidx]
+            new_global_state["user_embeddings.weight"] = merged_user_w
+            global_model.load_state_dict(new_global_state)
 
-        loss = max(0.215, loss * 0.925 - random.uniform(0.002, 0.006))
-        ndcg = min(0.418, ndcg + (0.418 - ndcg) * 0.18 + random.uniform(0.001, 0.004))
-        hr = min(0.645, hr + (0.645 - hr) * 0.17 + random.uniform(0.001, 0.005))
-        gini = max(0.245, gini - 0.012 + random.uniform(0.001, 0.003))
+        ndcg10, hr10, mrr_val, gini_val = evaluate_model(
+            global_model,
+            pipeline.test_df,
+            pipeline.user2idx,
+            pipeline.item2idx,
+            pipeline.user_positive_items,
+            pipeline.num_items,
+        )
+        elapsed = time.time() - t0
+        print(
+            f"  \033[32m[Aggregator]\033[0m Round {r} synced ({elapsed:.2f}s) | "
+            f"NDCG@10=\033[1m{ndcg10:.4f}\033[0m | HR@10=\033[1m{hr10:.4f}\033[0m | "
+            f"MRR={mrr_val:.4f} | Gini={gini_val:.4f}\n"
+        )
+        write_log(
+            f"ROUND {r} COMPLETE ({elapsed:.2f}s): "
+            f"ndcg10={ndcg10:.4f}, hr10={hr10:.4f}, mrr={mrr_val:.4f}, gini={gini_val:.4f}"
+        )
 
-        print(f"  \033[1m\033[36mGlobal Model Evaluation:\033[0m")
-        print(f"    • Global NDCG@10       : \033[1m\033[32m{ndcg:.4f}\033[0m")
-        print(f"    • Global Hit Rate@10   : \033[1m\033[32m{hr:.4f}\033[0m")
-        print(f"    • Mean Global BPR Loss : \033[33m{loss:.4f}\033[0m")
-        print(f"    • Client Fairness Gini : \033[36m{gini:.4f}\033[0m \033[90m(Equalized recommendation quality)\033[0m")
-        print(f"    • Differential Privacy : \033[32m(ε = 2.41, δ = 1e-5) Preserved\033[0m\n")
+    print("\033[1m\033[32mReal PyTorch Federated Learning session complete.\033[0m")
+    print(f"Full audit log saved to: {LOG_FILE}\n")
+    write_log("=== REAL PYTORCH FL SESSION COMPLETE ===")
 
-        log_to_file(f"ROUND {r} AGGREGATION COMPLETE: ndcg10={ndcg:.4f}, hr10={hr:.4f}, loss={loss:.4f}, gini={gini:.4f}")
-        time.sleep(0.5)
-
-    print("\033[1m\033[32m✔ Federated Convergence Benchmark Complete!\033[0m")
-    print(f"All 15 rounds recorded to {LOG_FILE}.")
-    print("Global Model Parity reached \033[1m96.4%\033[0m relative to Centralized Gold Standard.\n")
-    log_to_file("--- PYTHON FL MONITOR SESSION COMPLETE ---")
 
 if __name__ == "__main__":
     main()

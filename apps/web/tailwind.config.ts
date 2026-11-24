@@ -13,11 +13,16 @@ const config: Config = {
         border: "#EAE7E2",
         muted: "#F5F3EF",
         charcoal: {
-          900: "#111110",
-          800: "#222120",
-          700: "#383634",
-          500: "#6B6764",
+          50: "#FAF9F7",
+          100: "#F2EFE9",
+          200: "#E5E0D8",
+          300: "#CEC8BF",
           400: "#9C9792",
+          500: "#6B6764",
+          600: "#524E4B",
+          700: "#383634",
+          800: "#222120",
+          900: "#111110",
         },
         accent: {
           DEFAULT: "#C2410C", // Restrained editorial terracotta / warm burnt orange
@@ -25,9 +30,17 @@ const config: Config = {
           light: "#FFEDD5",
         },
         emerald: {
+          50: "#ECFDF5",
+          100: "#D1FAE5",
+          200: "#A7F3D0",
+          500: "#10B981",
+          600: "#059669",
+          700: "#047857",
+          800: "#065F46",
+          900: "#064E3B",
           DEFAULT: "#059669",
           light: "#D1FAE5",
-        }
+        },
       },
       fontFamily: {
         serif: ["Georgia", "Cambria", "Times New Roman", "serif"],

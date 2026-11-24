@@ -44,3 +44,6 @@ data/raw/
 *.onnx
 !results/models/*.pt
 *.tsbuildinfo
+
+# Runtime Federated Learning Logs
+logs/

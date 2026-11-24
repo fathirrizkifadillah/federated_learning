@@ -13,13 +13,14 @@
     "dev:api": "npm run dev --workspace=apps/api",
     "clean:ports": "powershell -Command \"Get-Process node, tsx -ErrorAction SilentlyContinue | Stop-Process -Force\"",
     "fl:monitor": "node scripts/fl-monitor.js",
+    "fl:agent": "python clients/local-agent/agent_daemon.py",
     "build:web": "npm run build --workspace=apps/web",
     "build:api": "npm run build --workspace=apps/api",
     "lint": "npm run lint --workspaces",
     "test:api": "npm run test --workspace=apps/api",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
     "db:studio": "npm run db:studio --workspace=apps/api",
-    "test:ml": ".venv/Scripts/pytest ml/tests -v"
+    "test:ml": ".venv\\Scripts\\pytest.exe ml/tests -v"
   },
   "keywords": [
     "federated-learning",

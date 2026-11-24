@@ -47,7 +47,18 @@ class RecSysDataPipeline:
 
         # Load precomputed sentence embeddings (shape: [num_items, 384])
         if os.path.exists(embeddings_path):
-            self.item_embeddings = np.load(embeddings_path).astype(np.float32)
+            loaded_embs = np.load(embeddings_path).astype(np.float32)
+            if loaded_embs.shape[0] < self.num_items:
+                # Deterministically pad newly added catalog articles to match embedding dimension
+                rng = np.random.default_rng(seed)
+                pad_rows = self.num_items - loaded_embs.shape[0]
+                pad = rng.normal(0.0, 0.05, size=(pad_rows, loaded_embs.shape[1])).astype(np.float32)
+                # Normalize padded vectors to unit norm like Sentence-Transformers outputs
+                norms = np.linalg.norm(pad, axis=1, keepdims=True) + 1e-8
+                pad = pad / norms
+                self.item_embeddings = np.vstack([loaded_embs, pad])
+            else:
+                self.item_embeddings = loaded_embs[: self.num_items]
         else:
             self.item_embeddings = np.random.randn(self.num_items, 384).astype(np.float32)
 

@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Check } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+
   const { login, register, user } = useAuth();
   const { lang } = useLanguage();
 
@@ -27,21 +30,26 @@ export default function LoginPage() {
     if (mode === 'login') {
       const res = await login(email, password);
       if (res.success) {
-        router.push('/');
+        router.push(redirectTo);
       } else {
-        setError(res.error || 'Login gagal.');
+        setError(res.error || (lang === 'id' ? 'Email atau kata sandi salah.' : 'Invalid email or password.'));
       }
     } else {
       if (!username.trim()) {
-        setError('Username wajib diisi.');
+        setError(lang === 'id' ? 'Username wajib diisi.' : 'Username is required.');
+        setSubmitting(false);
+        return;
+      }
+      if (password.length < 6) {
+        setError(lang === 'id' ? 'Kata sandi minimal 6 karakter.' : 'Password must be at least 6 characters.');
         setSubmitting(false);
         return;
       }
       const res = await register(email, username, password);
       if (res.success) {
-        router.push('/');
+        router.push(redirectTo);
       } else {
-        setError(res.error || 'Pendaftaran gagal.');
+        setError(res.error || (lang === 'id' ? 'Pendaftaran gagal.' : 'Registration failed.'));
       }
     }
 
@@ -49,37 +57,44 @@ export default function LoginPage() {
   };
 
   const handleQuickDemo = async () => {
+    setError(null);
     setEmail('fathir@fedsocial.local');
     setPassword('password123');
     setSubmitting(true);
     const res = await login('fathir@fedsocial.local', 'password123');
     if (res.success) {
-      router.push('/');
+      router.push(redirectTo);
     } else {
-      setError(res.error || 'Login demo gagal.');
+      setError(res.error || (lang === 'id' ? 'Login demo gagal.' : 'Demo login failed.'));
     }
     setSubmitting(false);
   };
 
   if (user) {
     return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-4">
+      <div className="max-w-md mx-auto py-12 sm:py-16 px-2 text-center space-y-4">
         <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
-          <Check className="w-6 h-6 stroke-[3]" />
+          <Check className="w-6 h-6 stroke-[2.5]" />
         </div>
         <h2 className="font-serif text-2xl font-bold text-charcoal-900">
-          {lang === 'id' ? 'Anda Sudah Masuk' : 'You are Logged In'}
+          {lang === 'id' ? 'Anda Sudah Masuk' : 'You are Signed In'}
         </h2>
-        <p className="text-charcoal-600 text-sm font-mono">
-          {lang === 'id' ? 'Masuk sebagai:' : 'Logged in as:'}{' '}
+        <p className="text-charcoal-600 text-sm">
+          {lang === 'id' ? 'Masuk sebagai ' : 'Signed in as '}
           <strong className="text-charcoal-900">{user.displayName || user.username}</strong> ({user.email})
         </p>
-        <div className="pt-4 flex justify-center gap-3">
+        <div className="pt-4 flex flex-col sm:flex-row justify-center gap-2.5">
           <Link
-            href="/"
-            className="px-4 py-2 bg-charcoal-900 text-white rounded text-xs font-mono uppercase tracking-wider font-semibold hover:bg-accent transition-colors"
+            href={redirectTo}
+            className="px-5 py-2.5 bg-charcoal-900 text-white rounded text-xs font-semibold hover:bg-accent transition-colors"
           >
-            {lang === 'id' ? 'Kembali ke Beranda' : 'Return to Feed'}
+            {lang === 'id' ? 'Lanjutkan Membaca' : 'Continue Reading'}
+          </Link>
+          <Link
+            href="/profile"
+            className="px-5 py-2.5 border border-[#DED9D2] bg-white text-charcoal-800 rounded text-xs font-semibold hover:bg-[#F5F3EF] transition-colors"
+          >
+            {lang === 'id' ? 'Buka Profil' : 'Open Profile'}
           </Link>
         </div>
       </div>
@@ -87,50 +102,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto py-8">
+    <div className="max-w-md mx-auto py-4 sm:py-8">
       {/* Back Link */}
-      <div className="mb-6">
+      <div className="mb-5">
         <Link
-          href="/"
-          className="text-xs font-mono uppercase text-charcoal-500 hover:text-accent transition-colors flex items-center gap-1"
+          href={redirectTo !== '/login' ? redirectTo : '/'}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-charcoal-600 hover:text-charcoal-900 transition-colors"
         >
-          {lang === 'id' ? '← Kembali ke Beranda' : '← Back to Feed'}
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{lang === 'id' ? 'Kembali' : 'Back'}</span>
         </Link>
       </div>
 
-      <div className="border border-[#E8E5DF] bg-white p-6 sm:p-8 rounded shadow-sm">
+      <div className="border border-[#E8E5DF] bg-white p-5 sm:p-8 rounded-lg shadow-sm">
         {/* Header Title */}
         <div className="text-center mb-6">
-          <span className="text-[11px] font-mono uppercase tracking-widest text-accent font-bold">
-            FedSocial v2.0
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900 mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900">
             {mode === 'login'
               ? lang === 'id'
-                ? 'Masuk ke Akun Anda'
-                : 'Sign In to Your Account'
+                ? 'Masuk ke Akun'
+                : 'Sign In'
               : lang === 'id'
-              ? 'Daftar Akun Baru'
-              : 'Create a New Account'}
+              ? 'Buat Akun Baru'
+              : 'Create Account'}
           </h1>
-          <p className="text-charcoal-600 text-xs mt-1.5 leading-relaxed">
+          <p className="text-charcoal-600 text-xs sm:text-sm mt-1.5 leading-relaxed">
             {lang === 'id'
-              ? 'Akses publikasi terkurasi dan pantau adaptasi model edge Anda.'
-              : 'Access curated dispatches and monitor your private edge model.'}
+              ? 'Simpan artikel favorit, kelola profil, dan lanjutkan bacaan Anda.'
+              : 'Save favorite articles, manage your profile, and keep reading.'}
           </p>
         </div>
 
-        {/* Segmented Control Login / Register with clear active styling */}
-        <div className="flex bg-[#ECE8E1] p-1 rounded-md border border-[#DED9D2] mb-6">
+        {/* Segmented Control Login / Register */}
+        <div className="grid grid-cols-2 bg-[#ECE8E1] p-1 rounded-md border border-[#DED9D2] mb-6">
           <button
             type="button"
             onClick={() => {
               setMode('login');
               setError(null);
             }}
-            className={`flex-1 py-1.5 text-xs font-mono uppercase tracking-wider text-center transition-all ${
+            className={`py-2 text-xs text-center rounded transition-all ${
               mode === 'login'
-                ? 'bg-charcoal-900 text-white font-bold rounded shadow-xs'
+                ? 'bg-charcoal-900 text-white font-semibold shadow-sm'
                 : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
             }`}
           >
@@ -142,9 +155,9 @@ export default function LoginPage() {
               setMode('register');
               setError(null);
             }}
-            className={`flex-1 py-1.5 text-xs font-mono uppercase tracking-wider text-center transition-all ${
+            className={`py-2 text-xs text-center rounded transition-all ${
               mode === 'register'
-                ? 'bg-charcoal-900 text-white font-bold rounded shadow-xs'
+                ? 'bg-charcoal-900 text-white font-semibold shadow-sm'
                 : 'text-charcoal-600 hover:text-charcoal-900 font-medium'
             }`}
           >
@@ -154,61 +167,63 @@ export default function LoginPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-5 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-xs font-mono leading-relaxed">
+          <div className="mb-5 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed">
             {error}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-mono uppercase text-charcoal-700 mb-1 font-semibold">
+            <label className="block text-xs text-charcoal-700 mb-1.5 font-semibold">
               Email
             </label>
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nama@email.com"
-              className="w-full px-3 py-2 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
+              className="w-full px-3.5 py-2.5 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
             />
           </div>
 
           {mode === 'register' && (
             <div>
-              <label className="block text-xs font-mono uppercase text-charcoal-700 mb-1 font-semibold">
+              <label className="block text-xs text-charcoal-700 mb-1.5 font-semibold">
                 Username
               </label>
               <input
                 type="text"
                 required
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="fathir123"
-                className="w-full px-3 py-2 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
+                className="w-full px-3.5 py-2.5 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-mono uppercase text-charcoal-700 mb-1 font-semibold">
+            <label className="block text-xs text-charcoal-700 mb-1.5 font-semibold">
               {lang === 'id' ? 'Kata Sandi' : 'Password'}
             </label>
             <input
               type="password"
               required
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3 py-2 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
+              placeholder="Minimal 6 karakter"
+              className="w-full px-3.5 py-2.5 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
             />
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full mt-2 py-2.5 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-mono uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+            className="w-full mt-2 py-2.5 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-semibold transition-colors disabled:opacity-50 min-h-[42px]"
           >
             {submitting
               ? lang === 'id'
@@ -220,22 +235,36 @@ export default function LoginPage() {
                 : 'Sign In'
               : lang === 'id'
               ? 'Daftar Sekarang'
-              : 'Register Now'}
+              : 'Create Account'}
           </button>
         </form>
 
-        {/* Quick Demo Login (No Emojis) */}
-        <div className="mt-6 pt-5 border-t border-[#F0ECE6]">
+        {/* Quick Demo Login */}
+        <div className="mt-5 pt-5 border-t border-[#F0ECE6]">
           <button
             type="button"
             onClick={handleQuickDemo}
             disabled={submitting}
-            className="w-full py-2.5 bg-[#F7F5F0] hover:bg-[#EAE6DE] border border-[#DED9D2] text-charcoal-800 rounded text-xs font-semibold flex items-center justify-center transition-colors"
+            className="w-full py-2.5 bg-[#F7F5F0] hover:bg-[#EAE6DE] border border-[#DED9D2] text-charcoal-800 rounded text-xs font-semibold flex items-center justify-center transition-colors min-h-[40px]"
           >
             {lang === 'id' ? 'Masuk Otomatis Akun Demo (Fathir)' : 'Quick Demo Sign In (Fathir)'}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-md mx-auto py-16 text-center text-xs text-charcoal-500">
+          Memuat...
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

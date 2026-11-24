@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { LocalEvent } from '@fedsocial/shared-types';
+import { normalizeCategorySlug } from './categories';
 
 export interface LocalUserProfile {
   userId: string;
@@ -142,9 +143,9 @@ async function updateLocalProfileOnline(event: LocalEvent): Promise<void> {
     signalWeight = 0.5;
   }
 
-  const category = (event.metadata?.category as string)?.toLowerCase();
+  const category = normalizeCategorySlug(event.metadata?.category as string);
   if (category && existingProfile.topicWeights[category] !== undefined) {
-    existingProfile.topicWeights[category] += signalWeight * 0.1;
+    existingProfile.topicWeights[category] += Math.max(signalWeight, 0.2) * 0.1;
 
     const sum = Object.values(existingProfile.topicWeights).reduce((a, b) => a + b, 0);
     if (sum > 0) {

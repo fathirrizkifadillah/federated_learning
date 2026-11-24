@@ -1,5 +1,6 @@
 import { getEdgeDB, getLocalProfile, CachedArticleCandidate } from './indexed-db';
 import { Article } from '@fedsocial/shared-types';
+import { normalizeCategorySlug } from './categories';
 
 export interface ScoredArticle extends Article {
   recommendationScore: number;
@@ -32,8 +33,8 @@ export async function rankCandidatesOnDevice(
   };
 
   const scored: ScoredArticle[] = candidates.map(article => {
-    const cat = article.category.toLowerCase();
-    const baseTopicWeight = topicWeights[cat] ?? 0.2;
+    const cat = normalizeCategorySlug(article.category, (article as any).category_slug);
+    const baseTopicWeight = topicWeights[cat] ?? 0.33;
 
     // Recency decay: articles published more recently receive a slight freshness bonus
     const publishedTime = new Date(article.publishedAt || article.published_at || Date.now()).getTime();
@@ -87,8 +88,10 @@ export async function rankCandidatesOnDevice(
       let penalty = 1.0;
 
       // Penalize consecutive same-category articles
-      if (candidate.category.toLowerCase() === last.category.toLowerCase()) {
-        penalty *= 0.75;
+      const candCat = normalizeCategorySlug(candidate.category, (candidate as any).category_slug);
+      const lastCat = normalizeCategorySlug(last.category, (last as any).category_slug);
+      if (candCat === lastCat) {
+        penalty *= 0.72;
       }
 
       // Penalize consecutive same-language articles if mixed

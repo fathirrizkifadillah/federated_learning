@@ -7,7 +7,9 @@ export interface AuthUser {
   email: string;
   username: string;
   displayName?: string;
+  bio?: string | null;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -55,16 +57,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             if (res.ok) {
               const data = await res.json();
-              if (data.data?.user) {
+              const payload = data.data || data;
+              if (payload?.user) {
                 const refreshed: AuthUser = {
-                  id: data.data.user.id,
-                  email: data.data.user.email,
-                  username: data.data.user.username,
-                  displayName: data.data.profile?.display_name || data.data.user.username,
+                  id: payload.user.id,
+                  email: payload.user.email,
+                  username: payload.user.username,
+                  displayName: payload.profile?.display_name || payload.user.username,
+                  bio: payload.profile?.bio || null,
+                  createdAt: payload.user.created_at,
                 };
                 setUser(refreshed);
                 localStorage.setItem('fedsocial_user', JSON.stringify(refreshed));
               }
+            } else if (res.status === 401 && savedToken !== 'demo-token-fedsocial') {
+              localStorage.removeItem('fedsocial_token');
+              localStorage.removeItem('fedsocial_user');
+              setToken(null);
+              setUser(null);
             }
           } catch (e) {
             // offline fallback keeps existing savedUser
@@ -107,6 +117,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: userObj.email,
         username: userObj.username,
         displayName: profileObj?.display_name || userObj.username,
+        bio: profileObj?.bio || null,
+        createdAt: userObj.created_at,
       };
 
       setUser(loggedUser);
@@ -203,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const updatedUser: AuthUser = {
           ...user,
           displayName: displayName || user.displayName,
+          bio: bio !== undefined ? bio : user.bio,
         };
         setUser(updatedUser);
         localStorage.setItem('fedsocial_user', JSON.stringify(updatedUser));

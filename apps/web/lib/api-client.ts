@@ -27,11 +27,11 @@ export async function fetchFeedPosts(
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+    const timeout = setTimeout(() => controller.abort(), 4500);
 
     const res = await fetch(`${API_BASE_URL}/posts?${params.toString()}`, {
       signal: controller.signal,
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     clearTimeout(timeout);
 
@@ -76,11 +76,11 @@ export async function fetchFeedPosts(
 export async function fetchPostBySlug(slug: string): Promise<Article | null> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+    const timeout = setTimeout(() => controller.abort(), 4500);
 
     const res = await fetch(`${API_BASE_URL}/posts/${slug}`, {
       signal: controller.signal,
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     clearTimeout(timeout);
 
@@ -98,19 +98,22 @@ export async function fetchPostBySlug(slug: string): Promise<Article | null> {
 export async function fetchPublicCandidates(limit = 100, lang?: string): Promise<Article[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+    const timeout = setTimeout(() => controller.abort(), 4500);
 
-    const res = await fetch(`${API_BASE_URL}/posts/candidates?limit=${limit}`, {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (lang && lang !== 'all') {
+      params.append('language', lang);
+    }
+
+    const res = await fetch(`${API_BASE_URL}/posts/candidates?${params.toString()}`, {
       signal: controller.signal,
+      cache: 'no-store',
     });
     clearTimeout(timeout);
 
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    let candidates: Article[] = data.data.candidates;
-    if (lang && lang !== 'all') {
-      candidates = candidates.filter(a => (a as any).language === lang);
-    }
+    let candidates: Article[] = data.data.candidates || [];
     if (candidates.length > 0) return candidates;
     throw new Error('Empty candidate pool');
   } catch (err) {
