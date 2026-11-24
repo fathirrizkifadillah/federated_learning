@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, ArrowLeft } from 'lucide-react';
+import { Check, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
@@ -19,6 +19,7 @@ function LoginContent() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,20 +54,6 @@ function LoginContent() {
       }
     }
 
-    setSubmitting(false);
-  };
-
-  const handleQuickDemo = async () => {
-    setError(null);
-    setEmail('fathir@fedsocial.local');
-    setPassword('password123');
-    setSubmitting(true);
-    const res = await login('fathir@fedsocial.local', 'password123');
-    if (res.success) {
-      router.push(redirectTo);
-    } else {
-      setError(res.error || (lang === 'id' ? 'Login demo gagal.' : 'Demo login failed.'));
-    }
     setSubmitting(false);
   };
 
@@ -209,15 +196,33 @@ function LoginContent() {
             <label className="block text-xs text-charcoal-700 mb-1.5 font-semibold">
               {lang === 'id' ? 'Kata Sandi' : 'Password'}
             </label>
-            <input
-              type="password"
-              required
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimal 6 karakter"
-              className="w-full px-3.5 py-2.5 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={lang === 'id' ? 'Minimal 6 karakter' : 'At least 6 characters'}
+                className="w-full px-3.5 py-2.5 pr-10 border border-[#DED9D2] rounded text-sm text-charcoal-900 focus:outline-none focus:border-charcoal-900"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={
+                  showPassword
+                    ? lang === 'id'
+                      ? 'Sembunyikan kata sandi'
+                      : 'Hide password'
+                    : lang === 'id'
+                    ? 'Tampilkan kata sandi'
+                    : 'Show password'
+                }
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-charcoal-500 hover:text-charcoal-900 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -238,18 +243,6 @@ function LoginContent() {
               : 'Create Account'}
           </button>
         </form>
-
-        {/* Quick Demo Login */}
-        <div className="mt-5 pt-5 border-t border-[#F0ECE6]">
-          <button
-            type="button"
-            onClick={handleQuickDemo}
-            disabled={submitting}
-            className="w-full py-2.5 bg-[#F7F5F0] hover:bg-[#EAE6DE] border border-[#DED9D2] text-charcoal-800 rounded text-xs font-semibold flex items-center justify-center transition-colors min-h-[40px]"
-          >
-            {lang === 'id' ? 'Masuk Otomatis Akun Demo (Fathir)' : 'Quick Demo Sign In (Fathir)'}
-          </button>
-        </div>
       </div>
     </div>
   );

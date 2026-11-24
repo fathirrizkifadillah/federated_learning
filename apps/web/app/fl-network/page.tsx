@@ -60,10 +60,18 @@ export default function FLNetworkPage() {
   }, []);
 
   const handleManualRound = async () => {
+    if (!user || !token) {
+      setRoundNotice(
+        lang === 'id'
+          ? 'Silakan masuk ke akun Anda terlebih dahulu untuk menjalankan pelatihan dan berkontribusi pada ronde Federated Learning.'
+          : 'Please sign in to your account first to run local training and contribute to Federated Learning rounds.'
+      );
+      return;
+    }
     setRunningRound(true);
     setRoundNotice(null);
     const res = await maybeRunBrowserFLRound({
-      user: user ? { id: user.id, email: user.email } : null,
+      user: { id: user.id, email: user.email },
       token,
       force: true,
     });

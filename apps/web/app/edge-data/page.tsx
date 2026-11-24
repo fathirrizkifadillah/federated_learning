@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { LocalEvent } from '@fedsocial/shared-types';
-import { getLocalEvents, getLocalProfile, clearLocalEdgeData, LocalUserProfile } from '@/lib/indexed-db';
+import { getUserLocalEvents, getLocalProfile, clearLocalEdgeData, LocalUserProfile } from '@/lib/indexed-db';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 
@@ -17,9 +17,16 @@ export default function EdgeDataPage() {
 
   async function loadEdgeState() {
     setLoading(true);
-    const evts = await getLocalEvents(50);
-    const activeUserId = user?.id || 'local-user-guest';
-    const prof = (await getLocalProfile(activeUserId)) || (await getLocalProfile('local-user-guest'));
+    if (!user?.id) {
+      setEvents([]);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+    const [evts, prof] = await Promise.all([
+      getUserLocalEvents(user.id, 50),
+      getLocalProfile(user.id),
+    ]);
     setEvents(evts);
     setProfile(prof || null);
     setLoading(false);
@@ -77,6 +84,26 @@ export default function EdgeDataPage() {
             : 'Every reading duration, scroll depth, and interaction below is stored exclusively in your browser local IndexedDB.'}
         </p>
       </div>
+
+      {/* Guest Mode Notice */}
+      {!user && (
+        <div className="border border-[#E8E5DF] bg-[#FAF8F5] p-5 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="text-xs sm:text-sm text-charcoal-700 leading-relaxed">
+            <strong className="text-charcoal-900 block mb-0.5">
+              {lang === 'id' ? 'Mode Tamu (Guest) — Pelatihan FL Tidak Aktif' : 'Guest Mode — FL Training Disabled'}
+            </strong>
+            {lang === 'id'
+              ? 'Pengunjung tanpa akun dapat membaca bebas tanpa direkam. Masuk atau daftar akun untuk mengaktifkan model personalisasi lokal dan pelatihan Federated Learning milik akun Anda.'
+              : 'Guests can read freely without local tracking. Sign in or create an account to activate on-device personalization and per-account Federated Learning.'}
+          </div>
+          <Link
+            href="/login?redirect=/edge-data"
+            className="px-4 py-2 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-semibold shrink-0 text-center transition-colors"
+          >
+            {lang === 'id' ? 'Masuk / Daftar' : 'Sign In / Register'}
+          </Link>
+        </div>
+      )}
 
       {/* On-Device Profile Weights */}
       <div className="border border-[#E8E5DF] bg-white p-5 sm:p-6 rounded-md shadow-sm">

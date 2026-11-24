@@ -138,7 +138,11 @@ export async function maybeRunBrowserFLRound(options: {
     return { ran: false, reason: 'in_flight' };
   }
 
-  const userId = options.user?.id || 'local-user-guest';
+  if (!options.user?.id || !options.token || options.token === 'demo-token-fedsocial') {
+    return { ran: false, reason: 'auth_required' };
+  }
+
+  const userId = options.user.id;
   const profile = await getLocalProfile(userId);
   const pendingEvents = profile?.eventsSinceLastRound || 0;
 

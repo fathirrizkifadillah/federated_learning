@@ -39,10 +39,11 @@ export function useReadingTracker({
 
   const normalizedCat = normalizeCategorySlug(category);
   const normalizedLang = (language || 'en').toLowerCase() === 'id' ? 'id' : 'en';
+  const isAuthenticated = Boolean(userId && userId !== 'local-user-guest' && userEmail && authToken);
 
-  // Helper to record local event safely (IndexedDB + optional localhost 127.0.0.1 FL daemon)
+  // Helper to record local event safely (authenticated accounts only — guests read without local FL training)
   const dispatchLocal = (type: EventType, extraMetadata = {}) => {
-    if (!articleId || articleId === 'pending') return;
+    if (!isAuthenticated || !articleId || articleId === 'pending') return;
 
     const uuid = crypto.randomUUID();
     const nowIso = new Date().toISOString();
@@ -121,7 +122,7 @@ export function useReadingTracker({
   };
 
   useEffect(() => {
-    if (!articleId || articleId === 'pending') return;
+    if (!isAuthenticated || !articleId || articleId === 'pending') return;
 
     // Reset trackers for new article
     accumulatedMsRef.current = 0;
@@ -220,7 +221,7 @@ export function useReadingTracker({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleId, normalizedCat, normalizedLang, userId, idleTimeoutMs]);
+  }, [isAuthenticated, articleId, normalizedCat, normalizedLang, userId, idleTimeoutMs]);
 
   const recordExplicitFeedback = (type: 'like' | 'bookmark' | 'share') => {
     dispatchLocal(type);

@@ -29,23 +29,27 @@ export async function hydrateContextAndCandidates(
   candidates: Article[],
   baseCtx: Omit<PipelineContext, 'readArticleIds' | 'localProfile' | 'globalWeights'>
 ): Promise<{ ctx: PipelineContext; hydrated: HydratedCandidate[] }> {
+  const isAuthenticated = Boolean(baseCtx.user?.id && baseCtx.token);
+
   const [profile, globalModel] = await Promise.all([
-    getLocalProfile(baseCtx.userId).catch(() => undefined),
-    fetchGlobalFLModel().catch(() => null),
+    isAuthenticated ? getLocalProfile(baseCtx.userId).catch(() => undefined) : Promise.resolve(undefined),
+    isAuthenticated ? fetchGlobalFLModel().catch(() => null) : Promise.resolve(null),
   ]);
 
   let readArticleIds = new Set<string>();
-  try {
-    const db = await getEdgeDB();
-    const recentEvents = await db.getAllFromIndex('events', 'by-user', baseCtx.userId);
-    readArticleIds = new Set(
-      recentEvents
-        .filter((e) => e.eventType === 'dwell' || e.eventType === 'like' || e.eventType === 'bookmark')
-        .map((e) => e.articleId || e.article_id || '')
-        .filter((id): id is string => id.length > 0)
-    );
-  } catch {
-    // IndexedDB unavailable in SSR or private mode
+  if (isAuthenticated) {
+    try {
+      const db = await getEdgeDB();
+      const recentEvents = await db.getAllFromIndex('events', 'by-user', baseCtx.userId);
+      readArticleIds = new Set(
+        recentEvents
+          .filter((e) => e.eventType === 'dwell' || e.eventType === 'like' || e.eventType === 'bookmark')
+          .map((e) => e.articleId || e.article_id || '')
+          .filter((id): id is string => id.length > 0)
+      );
+    } catch {
+      // IndexedDB unavailable in SSR or private mode
+    }
   }
 
   const ctx: PipelineContext = {
@@ -219,6 +223,7 @@ export function selectWithDiversity(
  * Stage 6: SideEffect — Strictly fire-and-forget async trigger (never blocks feed rendering).
  */
 export function dispatchPipelineSideEffects(ctx: PipelineContext): void {
+  if (!ctx.user?.id || !ctx.token) return;
   void maybeRunBrowserFLRound({
     user: ctx.user,
     token: ctx.token,
