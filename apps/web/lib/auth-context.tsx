@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { pullAndDecryptAccountProfile } from '@/modules/e2ee';
 
 export interface AuthUser {
   id: string;
@@ -69,6 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 };
                 setUser(refreshed);
                 localStorage.setItem('fedsocial_user', JSON.stringify(refreshed));
+                void pullAndDecryptAccountProfile(
+                  { id: refreshed.id, email: refreshed.email },
+                  savedToken
+                );
               }
             } else if (res.status === 401 && savedToken !== 'demo-token-fedsocial') {
               localStorage.removeItem('fedsocial_token');
@@ -125,6 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(tokenStr);
       localStorage.setItem('fedsocial_token', tokenStr);
       localStorage.setItem('fedsocial_user', JSON.stringify(loggedUser));
+
+      // Cross-device zero-knowledge E2EE account profile restore
+      await pullAndDecryptAccountProfile({ id: loggedUser.id, email: loggedUser.email }, tokenStr);
 
       return { success: true };
     } catch (err: any) {

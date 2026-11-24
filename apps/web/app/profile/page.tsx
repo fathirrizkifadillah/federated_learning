@@ -2,17 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, Lock, Bookmark, Heart, Shield, Check, AlertCircle } from 'lucide-react';
+import { User, Lock, Bookmark, Heart, Shield, Check, AlertCircle, RefreshCw, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { getCategoryLabel } from '@/lib/categories';
+import { clearLocalEdgeData, getLocalProfile, getUserLocalEvents } from '@/lib/indexed-db';
+import { pushEncryptedAccountProfile, eraseEncryptedAccountProfile } from '@/modules/e2ee';
 import { Article } from '@fedsocial/shared-types';
 
 export default function ProfilePage() {
-  const { user, loading, logout, updateProfile, changePassword } = useAuth();
+  const { user, token, loading, logout, updateProfile, changePassword } = useAuth();
   const { lang } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'info' | 'bookmarks' | 'likes' | 'privacy'>('info');
+  const [privacyStatus, setPrivacyStatus] = useState<string | null>(null);
+  const [syncingVault, setSyncingVault] = useState(false);
 
   // Profile Edit State
   const [displayName, setDisplayName] = useState('');
@@ -548,37 +552,143 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Tab 4: Privacy */}
+      {/* Tab 4: Privacy & Zero-Knowledge E2EE Account Sync (GDPR Rights) */}
       {activeTab === 'privacy' && (
-        <div className="border border-[#E8E5DF] bg-white p-5 sm:p-6 rounded-md shadow-sm space-y-4">
-          <h2 className="font-serif text-lg font-bold text-charcoal-900 pb-2 border-b border-[#F0ECE6]">
-            {lang === 'id' ? 'Privasi Akun & Riwayat Baca' : 'Account & Reading Privacy'}
-          </h2>
-          <div className="text-xs sm:text-sm text-charcoal-700 leading-relaxed space-y-3">
-            <p>
+        <div className="border border-[#E8E5DF] bg-white p-5 sm:p-6 rounded-md shadow-sm space-y-5">
+          <div className="pb-2 border-b border-[#F0ECE6]">
+            <h2 className="font-serif text-lg font-bold text-charcoal-900">
+              {lang === 'id' ? 'Privasi Akun & Sinkronisasi Terenkripsi' : 'Account Privacy & E2EE Sync'}
+            </h2>
+            <p className="text-xs text-charcoal-500 mt-0.5">
               {lang === 'id'
-                ? 'Identitas akun Anda (username dan email) hanya digunakan untuk autentikasi dan menyimpan koleksi bacaan pribadi.'
-                : 'Your account identity (username and email) is used solely for authentication and personal reading lists.'}
-            </p>
-            <p>
-              {lang === 'id'
-                ? 'Riwayat durasi membaca dan pemeringkatan personalisasi diproses sepenuhnya secara lokal di perangkat Anda tanpa dikirim ke server pusat.'
-                : 'Reading duration history and feed personalization are computed strictly on-device without uploading raw behavior logs.'}
+                ? 'Enkripsi ujung-ke-ujung (AES-256-GCM) untuk sinkronisasi personalisasi antar perangkat.'
+                : 'End-to-end AES-256-GCM encryption for cross-device account personalization.'}
             </p>
           </div>
 
-          <div className="pt-4 border-t border-[#F0ECE6] flex flex-wrap gap-3">
+          <div className="text-xs sm:text-sm text-charcoal-700 leading-relaxed space-y-3">
+            <p>
+              {lang === 'id'
+                ? 'Vektor preferensi pribadi, artikel tersimpan, dan daftar suka Anda dienkripsi di browser sebelum disinkronkan agar dapat dipakai di HP maupun laptop tanpa bisa dibaca server.'
+                : 'Your private preference vector, bookmarks, and likes are encrypted inside the browser before syncing across phone and desktop so the server remains zero-knowledge.'}
+            </p>
+            <p>
+              {lang === 'id'
+                ? 'Pelatihan Federated Learning berjalan otomatis di Web Worker browser dan hanya mengirim pembaruan bobot item terpotong (DP-clipped) tanpa riwayat baca mentah.'
+                : 'Federated Learning runs automatically inside a browser Web Worker and submits only DP-clipped shared item weight deltas with zero raw reading logs.'}
+            </p>
+          </div>
+
+          {privacyStatus && (
+            <div className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" />
+              <span>{privacyStatus}</span>
+            </div>
+          )}
+
+          {/* GDPR Controls: Sync, Export (Portability), Erase (Right to Erasure) */}
+          <div className="pt-3 border-t border-[#F0ECE6] flex flex-wrap gap-2.5">
+            <button
+              type="button"
+              disabled={syncingVault || !token}
+              onClick={async () => {
+                if (!token) return;
+                setSyncingVault(true);
+                setPrivacyStatus(null);
+                const res = await pushEncryptedAccountProfile({ id: user.id, email: user.email }, token);
+                setSyncingVault(false);
+                if (res?.synced) {
+                  setPrivacyStatus(
+                    lang === 'id'
+                      ? `Sinkronisasi terenkripsi berhasil (v${res.profileSyncVersion}, ${res.ciphertextBytes} byte ciphertext AES-256-GCM).`
+                      : `Encrypted sync complete (v${res.profileSyncVersion}, ${res.ciphertextBytes} B AES-256-GCM ciphertext).`
+                  );
+                } else {
+                  setPrivacyStatus(
+                    lang === 'id' ? 'Gagal menyinkronkan ke server.' : 'Sync failed; check API server.'
+                  );
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncingVault ? 'animate-spin' : ''}`} />
+              <span>{lang === 'id' ? 'Sinkronisasi E2EE Sekarang' : 'Sync E2EE Vault Now'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const [prof, evts] = await Promise.all([
+                  getLocalProfile(user.id),
+                  getUserLocalEvents(user.id, 200),
+                ]);
+                const payload = {
+                  exportedAt: new Date().toISOString(),
+                  account: { id: user.id, username: user.username, email: user.email },
+                  localProfile: prof || null,
+                  localEventsCount: evts.length,
+                  savedArticles,
+                  likedArticles,
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `fedsocial_account_export_${user.username}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                setPrivacyStatus(
+                  lang === 'id' ? 'Data akun berhasil diekspor (JSON).' : 'Account data exported as JSON.'
+                );
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#F2EFE9] hover:bg-[#EAE5DD] text-charcoal-900 rounded text-xs font-semibold transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{lang === 'id' ? 'Ekspor Data (JSON)' : 'Export Data (JSON)'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const ok = confirm(
+                  lang === 'id'
+                    ? 'Hapus permanen seluruh riwayat baca lokal dan blob personalisasi terenkripsi di server?'
+                    : 'Permanently erase all local reading history and server-stored encrypted personalization blob?'
+                );
+                if (!ok) return;
+                await clearLocalEdgeData();
+                if (token) {
+                  await eraseEncryptedAccountProfile(token);
+                }
+                localStorage.removeItem(`fedsocial_saved_articles_${user.id}`);
+                localStorage.removeItem(`fedsocial_liked_articles_${user.id}`);
+                setSavedArticles([]);
+                setLikedArticles([]);
+                setPrivacyStatus(
+                  lang === 'id'
+                    ? 'Seluruh data personalisasi lokal & terenkripsi telah dihapus permanen.'
+                    : 'All local and encrypted personalization data has been permanently erased.'
+                );
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded text-xs font-semibold transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{lang === 'id' ? 'Hapus Data Personalisasi' : 'Erase Personalization Data'}</span>
+            </button>
+          </div>
+
+          <div className="pt-3 border-t border-[#F0ECE6] flex flex-wrap gap-3">
             <Link
               href="/edge-data"
-              className="px-4 py-2 bg-[#F2EFE9] hover:bg-[#EAE5DD] text-charcoal-900 rounded text-xs font-semibold transition-colors"
+              className="text-xs font-medium text-charcoal-600 hover:text-charcoal-900 underline"
             >
-              {lang === 'id' ? 'Lihat Data Lokal Perangkat' : 'Inspect Local Device Data'}
+              {lang === 'id' ? 'Inspeksi Data Edge (IndexedDB)' : 'Inspect Edge Data (IndexedDB)'}
             </Link>
             <Link
               href="/fl-network"
-              className="px-4 py-2 border border-[#DED9D2] hover:bg-[#F5F3EF] text-charcoal-700 rounded text-xs font-medium transition-colors"
+              className="text-xs font-medium text-charcoal-600 hover:text-charcoal-900 underline"
             >
-              {lang === 'id' ? 'Status Jaringan FL' : 'FL Network Status'}
+              {lang === 'id' ? 'Status Agregator FL' : 'FL Aggregator Status'}
             </Link>
           </div>
         </div>

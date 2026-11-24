@@ -8,10 +8,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n \"api,web\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "npm run dev --workspace=apps/api",
-    "clean:ports": "powershell -Command \"Get-Process node, tsx -ErrorAction SilentlyContinue | Stop-Process -Force\"",
+    "dev": "node scripts/clean-ports.js 3000 4000 && concurrently -k -n \"api,web\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "node scripts/clean-ports.js 3000 && npm run dev --workspace=apps/web",
+    "dev:api": "node scripts/clean-ports.js 4000 && npm run dev --workspace=apps/api",
+    "clean:ports": "node scripts/clean-ports.js 3000 4000",
+    "fl:logs": "node scripts/fl-logs.js",
     "fl:monitor": "node scripts/fl-monitor.js",
     "fl:agent": "python clients/local-agent/agent_daemon.py",
     "build:web": "npm run build --workspace=apps/web",

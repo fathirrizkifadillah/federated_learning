@@ -90,21 +90,59 @@ export default function EdgeDataPage() {
         </p>
 
         {profile ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
-            {Object.entries(profile.topicWeights).map(([category, weight]) => (
-              <div key={category} className="border border-[#E8E5DF] bg-[#FAF8F5] p-4 rounded">
-                <div className="uppercase font-bold text-charcoal-700 mb-1">{category}</div>
-                <div className="text-2xl font-bold text-charcoal-900 mb-2">
-                  {(weight * 100).toFixed(1)}%
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
+              {Object.entries(profile.topicWeights).map(([category, weight]) => (
+                <div key={category} className="border border-[#E8E5DF] bg-[#FAF8F5] p-4 rounded">
+                  <div className="uppercase font-bold text-charcoal-700 mb-1">{category}</div>
+                  <div className="text-2xl font-bold text-charcoal-900 mb-2">
+                    {(weight * 100).toFixed(1)}%
+                  </div>
+                  <div className="w-full bg-[#EAE7E2] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-charcoal-900 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, weight * 100)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-[#EAE7E2] h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-charcoal-900 h-full rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, weight * 100)}%` }}
-                  />
-                </div>
+              ))}
+            </div>
+
+            {/* Bilingual Language Affinity */}
+            <div className="pt-4 border-t border-[#F0ECE6]">
+              <div className="text-xs font-semibold text-charcoal-800 mb-3">
+                {lang === 'id'
+                  ? 'Preferensi Bahasa Bacaan Lokal (Bilingual Model)'
+                  : 'Local Reading Language Preference (Bilingual Model)'}
               </div>
-            ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                {[
+                  {
+                    code: 'id',
+                    label: lang === 'id' ? 'Bahasa Indonesia (ID)' : 'Indonesian (ID)',
+                    weight: profile.languageWeights?.id ?? 0.5,
+                  },
+                  {
+                    code: 'en',
+                    label: lang === 'id' ? 'Bahasa Inggris (EN)' : 'English (EN)',
+                    weight: profile.languageWeights?.en ?? 0.5,
+                  },
+                ].map((item) => (
+                  <div key={item.code} className="border border-[#E8E5DF] bg-[#FAF8F5] p-4 rounded">
+                    <div className="font-bold text-charcoal-700 mb-1">{item.label}</div>
+                    <div className="text-xl font-bold text-charcoal-900 mb-2">
+                      {(item.weight * 100).toFixed(1)}%
+                    </div>
+                    <div className="w-full bg-[#EAE7E2] h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-accent h-full rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, item.weight * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="text-xs text-charcoal-500 py-4 italic">

@@ -24,15 +24,21 @@ model User {
 }
 
 model UserProfile {
-  id                  String   @id @default(uuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  displayName         String?
-  bio                 String?
-  avatarUrl           String?
-  onboardingCompleted Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName          String?
+  bio                  String?
+  avatarUrl            String?
+  onboardingCompleted  Boolean   @default(false)
+  // Zero-Knowledge E2EE Account Personalization Blob (AES-256-GCM ciphertext; server cannot decrypt)
+  encryptedProfileBlob String?   @db.Text
+  encryptionIv         String?
+  encryptionSalt       String?
+  profileSyncVersion   Int       @default(0)
+  lastSyncedAt         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 model Session {
@@ -149,4 +155,15 @@ model ClientRegistry {
   lastActiveAt     DateTime @default(now())
 
   @@index([clientUuid])
+}
+
+model FederatedGlobalModel {
+  id             String   @id @default("global-active")
+  roundNumber    Int      @default(1)
+  strategy       String   @default("MaskedFedProx")
+  proximalMu     Float    @default(0.01)
+  weightsJson    String   @db.Text
+  totalUpdates   Int      @default(0)
+  lastGlobalLoss Float?
+  updatedAt      DateTime @updatedAt
 }

@@ -1,12 +1,14 @@
 {
   "total_users": 100,
-  "total_events": 4865,
-  "total_likes": 659,
-  "total_bookmarks": 251,
-  "mean_dwell_ms": 61987.194450154166,
-  "median_dwell_ms": 55622.0,
-  "mean_scroll_depth": 0.6548883864337102,
+  "total_events": 6928,
+  "total_en_events": 4865,
+  "total_id_events": 2063,
+  "total_likes": 1041,
+  "total_bookmarks": 396,
+  "mean_dwell_ms": 57892.43620092379,
+  "median_dwell_ms": 50294.5,
+  "mean_scroll_depth": 0.6694141166281755,
   "federated_clients": 10,
   "dirichlet_alpha": 0.5,
-  "generated_at": "2026-11-22T11:35:49.126782Z"
+  "generated_at": "2026-11-24T14:04:44.522814Z"
 }

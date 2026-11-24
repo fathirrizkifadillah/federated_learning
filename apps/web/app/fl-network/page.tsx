@@ -2,146 +2,249 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowLeft, RefreshCw, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
+import { maybeRunBrowserFLRound } from '@/modules/federated';
 
-interface LocalDaemonStatus {
-  online: boolean;
-  clientId?: string;
-  round?: number;
-  localEventsCount?: number;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+
+interface RoundRecord {
+  id: string;
+  roundNumber: number;
+  participatingClients: number;
+  aggregationStrategy: string;
+  globalLoss: number | null;
+  roundDurationSec: number | null;
+  createdAt: string;
+}
+
+interface RoundsResponse {
+  globalModel: {
+    roundNumber: number;
+    strategy: string;
+    proximalMu: number;
+    totalUpdates: number;
+    lastGlobalLoss: number | null;
+    updatedAt: string;
+  };
+  rounds: RoundRecord[];
 }
 
 export default function FLNetworkPage() {
   const { lang } = useLanguage();
-  const [daemonStatus, setDaemonStatus] = useState<LocalDaemonStatus>({ online: false });
+  const { user, token } = useAuth();
+
+  const [data, setData] = useState<RoundsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [runningRound, setRunningRound] = useState(false);
+  const [roundNotice, setRoundNotice] = useState<string | null>(null);
+
+  async function loadRounds() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/fl/rounds?limit=15`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json.data);
+      }
+    } catch {
+      // ignore offline
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // Check if local python FL daemon is running on port 4848
-    async function checkDaemon() {
-      try {
-        const res = await fetch('http://127.0.0.1:4848/api/v1/status', {
-          method: 'GET',
-          signal: AbortSignal.timeout(1500),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setDaemonStatus({
-            online: true,
-            clientId: data.clientId,
-            round: data.currentRound,
-            localEventsCount: data.localEventsCount,
-          });
-          return;
-        }
-      } catch {
-        // Daemon not running, keep offline
-      }
-      setDaemonStatus({ online: false });
-    }
-
-    checkDaemon();
-    const interval = setInterval(checkDaemon, 5000);
-    return () => clearInterval(interval);
+    loadRounds();
   }, []);
 
+  const handleManualRound = async () => {
+    setRunningRound(true);
+    setRoundNotice(null);
+    const res = await maybeRunBrowserFLRound({
+      user: user ? { id: user.id, email: user.email } : null,
+      token,
+      force: true,
+    });
+    setRunningRound(false);
+
+    if (res.ran) {
+      setRoundNotice(
+        lang === 'id'
+          ? `Ronde FL Browser #${res.roundNumber} selesai di Web Worker (Local Loss: ${res.localLoss?.toFixed(4)}, Sampel: ${res.sampleCount}, E2EE Akun: ${res.e2eeSynced ? 'Tersinkron' : 'Lokal'}).`
+          : `Browser FL Round #${res.roundNumber} completed in Web Worker (Local Loss: ${res.localLoss?.toFixed(4)}, Samples: ${res.sampleCount}, Account E2EE: ${res.e2eeSynced ? 'Synced' : 'Local'}).`
+      );
+      await loadRounds();
+    } else {
+      setRoundNotice(
+        lang === 'id'
+          ? `Gagal menjalankan ronde FL: ${res.reason || 'server tidak terjangkau'}.`
+          : `Failed to execute FL round: ${res.reason || 'server unreachable'}.`
+      );
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-4 space-y-8">
-      {/* Back Link */}
+    <div className="max-w-4xl mx-auto py-2 sm:py-4 space-y-6">
       <div>
         <Link
           href="/"
-          className="text-xs font-mono uppercase text-charcoal-500 hover:text-accent transition-colors flex items-center gap-1"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-charcoal-600 hover:text-charcoal-900 transition-colors"
         >
-          {lang === 'id' ? '← Kembali ke Beranda' : '← Back to Feed'}
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{lang === 'id' ? 'Kembali ke Beranda' : 'Back to Feed'}</span>
         </Link>
       </div>
 
       {/* Header */}
-      <div className="border-b border-[#E8E5DF] pb-5">
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900">
-          {lang === 'id' ? 'Konsol Jaringan Federated Learning' : 'Federated Learning Network Console'}
-        </h1>
-        <p className="text-charcoal-600 text-sm mt-1.5 max-w-2xl leading-relaxed">
-          {lang === 'id'
-            ? 'Pantau arsitektur terdesentralisasi. Model belajar secara lokal di IndexedDB dan hanya delta bobot item yang dikirimkan ke agregator Flower.'
-            : 'Monitor the decentralized coordination protocol. Client nodes train models locally on private logs and broadcast only parameter deltas to Flower.'}
-        </p>
+      <div className="border-b border-[#E8E5DF] pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900">
+            {lang === 'id' ? 'Jaringan Federated Learning (Browser-Native)' : 'Federated Learning Network (Browser-Native)'}
+          </h1>
+          <p className="text-charcoal-600 text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
+            {lang === 'id'
+              ? 'Pelatihan lokal BPR + FedProx berjalan otomatis di Web Worker browser (tanpa daemon Python) setiap 3 sinyal baca baru, dengan sinkronisasi preferensi akun terenkripsi AES-256-GCM.'
+              : 'Local BPR + FedProx training executes automatically inside a browser Web Worker every 3 new reading signals, paired with AES-256-GCM cross-device account vault sync.'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleManualRound}
+            disabled={runningRound}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-charcoal-900 hover:bg-accent text-white rounded text-xs font-semibold transition-colors disabled:opacity-50"
+          >
+            <Play className="w-3.5 h-3.5" />
+            <span>
+              {runningRound
+                ? lang === 'id'
+                  ? 'Melatih...'
+                  : 'Training...'
+                : lang === 'id'
+                ? 'Jalankan 1 Ronde FL'
+                : 'Run 1 FL Round'}
+            </span>
+          </button>
+          <button
+            onClick={loadRounds}
+            disabled={loading}
+            className="p-2 border border-[#DED9D2] bg-white hover:bg-[#F5F3EF] rounded text-charcoal-700 transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Network Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
-        <div className="border border-[#EAE7E2] bg-surface p-4 rounded">
-          <span className="text-charcoal-500 uppercase">Aggregator Strategy</span>
-          <div className="text-lg font-bold text-charcoal-900 mt-1">Masked FedAvg</div>
-          <span className="text-[11px] text-charcoal-500">FedProx with μ = 0.01</span>
+      {roundNotice && (
+        <div className="p-3.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs leading-relaxed">
+          {roundNotice}
         </div>
+      )}
 
-        <div className="border border-[#EAE7E2] bg-surface p-4 rounded">
-          <span className="text-charcoal-500 uppercase">Privacy Boundary</span>
-          <div className="text-lg font-bold text-emerald mt-1">0 Bytes Leakage</div>
-          <span className="text-[11px] text-charcoal-500">User embeddings strictly local</span>
-        </div>
-
-        <div className="border border-[#EAE7E2] bg-surface p-4 rounded">
-          <span className="text-charcoal-500 uppercase">Payload Per Round</span>
-          <div className="text-lg font-bold text-charcoal-900 mt-1">184.2 KB / client</div>
-          <span className="text-[11px] text-charcoal-500">Item embedding updates</span>
-        </div>
-
-        <div className="border border-[#EAE7E2] bg-surface p-4 rounded">
-          <span className="text-charcoal-500 uppercase">Local Daemon Status</span>
-          <div className="flex items-center space-x-2 mt-1">
-            <span className={`w-2.5 h-2.5 rounded-full ${daemonStatus.online ? 'bg-emerald animate-pulse' : 'bg-stone-300'}`} />
-            <span className={`text-base font-bold ${daemonStatus.online ? 'text-emerald-800' : 'text-charcoal-500'}`}>
-              {daemonStatus.online ? 'Online (4848)' : 'Standby / Offline'}
-            </span>
+      {/* Overview Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 font-mono text-xs">
+        <div className="border border-[#E8E5DF] bg-white p-4 rounded-md shadow-sm">
+          <span className="text-charcoal-500 uppercase text-[10px]">
+            {lang === 'id' ? 'Ronde Global Aktif' : 'Active Global Round'}
+          </span>
+          <div className="text-xl font-bold text-charcoal-900 mt-1">
+            #{data?.globalModel.roundNumber ?? 1}
           </div>
           <span className="text-[11px] text-charcoal-500">
-            {daemonStatus.online ? `Client: ${daemonStatus.clientId}` : 'Run clients/local-agent to connect'}
+            {data?.globalModel.totalUpdates ?? 0} {lang === 'id' ? 'agregasi' : 'aggregations'}
+          </span>
+        </div>
+
+        <div className="border border-[#E8E5DF] bg-white p-4 rounded-md shadow-sm">
+          <span className="text-charcoal-500 uppercase text-[10px]">
+            {lang === 'id' ? 'Strategi Agregasi' : 'Strategy'}
+          </span>
+          <div className="text-base font-bold text-charcoal-900 mt-1">
+            {data?.globalModel.strategy || 'MaskedFedProx'}
+          </div>
+          <span className="text-[11px] text-charcoal-500">
+            mu = {data?.globalModel.proximalMu ?? 0.01} • DP sigma = 0.01
+          </span>
+        </div>
+
+        <div className="border border-[#E8E5DF] bg-white p-4 rounded-md shadow-sm">
+          <span className="text-charcoal-500 uppercase text-[10px]">
+            {lang === 'id' ? 'Global BPR Loss' : 'Global BPR Loss'}
+          </span>
+          <div className="text-xl font-bold text-charcoal-900 mt-1">
+            {data?.globalModel.lastGlobalLoss !== null && data?.globalModel.lastGlobalLoss !== undefined
+              ? data.globalModel.lastGlobalLoss.toFixed(4)
+              : '—'}
+          </div>
+          <span className="text-[11px] text-charcoal-500">
+            {lang === 'id' ? 'Rata-rata tertimbang' : 'Weighted average'}
+          </span>
+        </div>
+
+        <div className="border border-[#E8E5DF] bg-white p-4 rounded-md shadow-sm">
+          <span className="text-charcoal-500 uppercase text-[10px]">
+            {lang === 'id' ? 'Batas Privasi' : 'Privacy Invariant'}
+          </span>
+          <div className="text-base font-bold text-emerald-700 mt-1">0 Bytes Raw Logs</div>
+          <span className="text-[11px] text-charcoal-500">
+            {lang === 'id' ? 'Delta bilingual 340B + E2EE AES-GCM' : '340B bilingual delta + E2EE AES-GCM'}
           </span>
         </div>
       </div>
 
-      {/* Decentralized Protocol Architecture Visual */}
-      <div className="border border-[#EAE7E2] bg-surface p-6 rounded">
-        <h2 className="font-serif text-xl font-bold text-charcoal-900 mb-2">
-          Decoupled Parameter Synchronization
-        </h2>
-        <p className="text-xs font-mono text-charcoal-500 mb-6">
-          How recommendation quality transfers without centralizing private behavioral records:
-        </p>
-
-        <div className="border border-[#EAE7E2] bg-[#FAF8F5] p-6 rounded font-mono text-xs text-charcoal-700 leading-relaxed overflow-x-auto">
-          <pre className="whitespace-pre">
-{`+-----------------------------------------------------------------------------------+
-|                        CENTRAL FL AGGREGATOR (Flower Server)                       |
-|   Coordinates training rounds • Aggregates Item Matrices • No User Data Access    |
-+-----------------------------------------------------------------------------------+
-             ▲                                            ▲
-             | Item Matrix Delta                         | Item Matrix Delta
-             | (184.2 KB)                                 | (184.2 KB)
-+---------------------------+                +---------------------------+
-|    EDGE CLIENT A          |                |    EDGE CLIENT B          |
-|  - Private SQLite / IDB   |                |  - Private SQLite / IDB   |
-|  - Raw Reading Durations  |                |  - Raw Reading Durations  |
-|  - User Embedding: [Local]|                |  - User Embedding: [Local]|
-|  - Trained with BPR Loss  |                |  - Trained with BPR Loss  |
-+---------------------------+                +---------------------------+`}
-          </pre>
+      {/* Recent Aggregation Rounds Table */}
+      <div className="border border-[#E8E5DF] bg-white rounded-md shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#F0ECE6] flex items-center justify-between">
+          <h2 className="font-serif text-base font-bold text-charcoal-900">
+            {lang === 'id' ? 'Riwayat Agregasi Ronde FL (Anonymized)' : 'Recent FL Aggregation Rounds'}
+          </h2>
+          <span className="text-[11px] font-mono text-charcoal-500">
+            {lang === 'id' ? 'Log lengkap: logs/federated_learning.log' : 'Full log: logs/federated_learning.log'}
+          </span>
         </div>
-      </div>
 
-      {/* How to Connect Local Agent */}
-      <div className="border border-[#EAE7E2] bg-[#FAF8F5] p-6 rounded space-y-4">
-        <h3 className="font-serif text-lg font-bold text-charcoal-900">
-          Connect Your Machine to the Federated Swarm
-        </h3>
-        <p className="text-xs text-charcoal-700 font-mono leading-relaxed">
-          The web application records your reading telemetry locally into IndexedDB. You can start the local Python daemon
-          to synchronize these local events into a local SQLite database and participate in Flower federated training rounds:
-        </p>
-        <div className="bg-charcoal-900 text-stone-100 p-4 rounded font-mono text-xs overflow-x-auto">
-          <code>python clients/local-agent/agent_daemon.py --port 4848 --server localhost:8080</code>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-[#FAF8F5] border-b border-[#E8E5DF] text-charcoal-600 uppercase text-[11px]">
+              <tr>
+                <th className="py-3 px-4">{lang === 'id' ? 'Ronde' : 'Round'}</th>
+                <th className="py-3 px-4">{lang === 'id' ? 'Strategi' : 'Strategy'}</th>
+                <th className="py-3 px-4">Global Loss</th>
+                <th className="py-3 px-4">{lang === 'id' ? 'Durasi' : 'Duration'}</th>
+                <th className="py-3 px-4">{lang === 'id' ? 'Waktu' : 'Timestamp'}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0ECE6]">
+              {data && data.rounds.length > 0 ? (
+                data.rounds.map((r) => (
+                  <tr key={r.id} className="hover:bg-[#FAF8F5]">
+                    <td className="py-3 px-4 font-bold text-charcoal-900">#{r.roundNumber}</td>
+                    <td className="py-3 px-4 text-charcoal-700">{r.aggregationStrategy}</td>
+                    <td className="py-3 px-4 text-charcoal-800">
+                      {r.globalLoss !== null ? r.globalLoss.toFixed(4) : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-charcoal-600">
+                      {r.roundDurationSec !== null ? `${r.roundDurationSec}s` : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-charcoal-500">
+                      {new Date(r.createdAt).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-charcoal-500 font-sans">
+                    {lang === 'id'
+                      ? 'Belum ada ronde agregasi tercatat. Klik "Jalankan 1 Ronde FL" atau baca 3 artikel untuk memicu ronde otomatis.'
+                      : 'No aggregation rounds recorded yet. Click "Run 1 FL Round" or read 3 articles to trigger automatically.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

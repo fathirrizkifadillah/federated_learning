@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { recordLocalEvent } from '@/lib/indexed-db';
 import { normalizeCategorySlug } from '@/lib/categories';
+import { maybeRunBrowserFLRound } from '@/modules/federated';
 import { LocalEvent, EventType } from '@fedsocial/shared-types';
 
 const LOCAL_AGENT_URL = process.env.NEXT_PUBLIC_LOCAL_AGENT_URL || 'http://127.0.0.1:4848';
@@ -10,14 +11,20 @@ const LOCAL_AGENT_URL = process.env.NEXT_PUBLIC_LOCAL_AGENT_URL || 'http://127.0
 interface ReadingTrackerOptions {
   articleId: string;
   category: string;
+  language?: string;
   userId?: string;
+  userEmail?: string;
+  authToken?: string | null;
   idleTimeoutMs?: number; // default 30,000ms (30s)
 }
 
 export function useReadingTracker({
   articleId,
   category,
+  language = 'en',
   userId = 'local-user-guest',
+  userEmail,
+  authToken,
   idleTimeoutMs = 30000,
 }: ReadingTrackerOptions) {
   const [activeReadingMs, setActiveReadingMs] = useState<number>(0);
@@ -31,6 +38,7 @@ export function useReadingTracker({
   const isIdleRef = useRef<boolean>(false);
 
   const normalizedCat = normalizeCategorySlug(category);
+  const normalizedLang = (language || 'en').toLowerCase() === 'id' ? 'id' : 'en';
 
   // Helper to record local event safely (IndexedDB + optional localhost 127.0.0.1 FL daemon)
   const dispatchLocal = (type: EventType, extraMetadata = {}) => {
@@ -60,36 +68,55 @@ export function useReadingTracker({
       content_word_count: 0,
       metadata: {
         category: normalizedCat,
+        language: normalizedLang,
         ...extraMetadata,
       },
     };
 
-    recordLocalEvent(event).catch(console.error);
-
-    // Strictly loopback (127.0.0.1) sync to optional local Python FL daemon for live terminal logs
-    try {
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 800);
-      fetch(`${LOCAL_AGENT_URL}/api/v1/sync-event`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: uuid,
-          article_id: articleId,
-          category: normalizedCat,
-          event_type: type,
-          timestamp: Date.now(),
-          duration_ms: accumulatedMsRef.current,
-          scroll_depth: maxScrollRef.current,
-        }),
-        signal: controller.signal,
+    recordLocalEvent(event)
+      .then(() => {
+        // Automatic Browser-Native Web Worker FL round check (fire-and-forget, off-thread)
+        if (type === 'dwell' || type === 'like' || type === 'bookmark') {
+          void maybeRunBrowserFLRound({
+            user: userId !== 'local-user-guest' && userEmail ? { id: userId, email: userEmail } : null,
+            token: authToken || null,
+            force: false,
+          });
+        }
       })
-        .catch(() => {
-          // Local agent daemon is optional; silently ignore if offline
+      .catch(console.error);
+
+    // Strictly loopback (127.0.0.1) sync to optional local Python FL daemon (dev localhost only)
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (isLocalhost) {
+      try {
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 800);
+        fetch(`${LOCAL_AGENT_URL}/api/v1/sync-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: uuid,
+            article_id: articleId,
+            category: normalizedCat,
+            language: normalizedLang,
+            event_type: type,
+            timestamp: Date.now(),
+            duration_ms: accumulatedMsRef.current,
+            scroll_depth: maxScrollRef.current,
+          }),
+          signal: controller.signal,
         })
-        .finally(() => clearTimeout(t));
-    } catch {
-      // Ignore loopback sync failure
+          .catch(() => {
+            // Local agent daemon is optional; silently ignore if offline
+          })
+          .finally(() => clearTimeout(t));
+      } catch {
+        // Ignore loopback sync failure
+      }
     }
   };
 
@@ -193,7 +220,7 @@ export function useReadingTracker({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleId, normalizedCat, userId, idleTimeoutMs]);
+  }, [articleId, normalizedCat, normalizedLang, userId, idleTimeoutMs]);
 
   const recordExplicitFeedback = (type: 'like' | 'bookmark' | 'share') => {
     dispatchLocal(type);

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Article } from '@fedsocial/shared-types';
 import { fetchFeedPosts } from '@/lib/api-client';
-import { rankCandidatesOnDevice, ScoredArticle } from '@/lib/edge-recommender';
+import { runFeedRecSysPipeline, RankedArticle } from '@/modules/recsys';
 import { ArticleCard } from '@/components/ArticleCard';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
@@ -35,10 +35,10 @@ function FeedContent() {
   const categoryParam = searchParams.get('category') || 'all';
 
   const { lang, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'for-you' | 'latest'>('for-you');
   const [langFilter, setLangFilter] = useState<string>('all');
-  const [articles, setArticles] = useState<(Article | ScoredArticle)[]>([]);
+  const [articles, setArticles] = useState<(Article | RankedArticle)[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -64,10 +64,13 @@ function FeedContent() {
 
       if (activeTab === 'for-you' && res.posts.length > 0) {
         try {
-          const ranked = await rankCandidatesOnDevice(
-            res.posts,
-            user?.id || 'local-user-guest'
-          );
+          const ranked = await runFeedRecSysPipeline({
+            candidates: res.posts,
+            user: user ? { id: user.id, email: user.email } : null,
+            token,
+            categoryFilter: cat,
+            languageFilter: targetLang,
+          });
           if (!isCancelled) {
             setArticles(ranked);
           }
@@ -90,7 +93,7 @@ function FeedContent() {
     return () => {
       isCancelled = true;
     };
-  }, [activeTab, categoryParam, langFilter, currentPage, user?.id]);
+  }, [activeTab, categoryParam, langFilter, currentPage, user, token]);
 
   const goToPage = (page: number) => {
     setCurrentPage(page);

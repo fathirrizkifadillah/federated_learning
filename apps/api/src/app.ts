@@ -6,18 +6,29 @@ import postsRoutes from './modules/posts/posts.routes';
 import categoriesRoutes from './modules/categories/categories.routes';
 import modelsRoutes from './modules/models/models.routes';
 import clientsRoutes from './modules/clients/clients.routes';
+import federatedRoutes from './modules/federated/federated.routes';
 import { errorHandler } from './middleware/error';
 
 export const app = express();
 
+const allowedOrigins = ENV.CORS_ORIGIN.split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: ENV.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow non-browser clients (curl, healthchecks, server-to-server) or listed origins
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Privacy Guard Middleware: Explicitly blocks any telemetry upload attempts to central server
 app.use('/api/v1/events', (req: Request, res: Response) => {
@@ -44,6 +55,7 @@ app.use('/api/v1/posts', postsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/models', modelsRoutes);
 app.use('/api/v1/clients', clientsRoutes);
+app.use('/api/v1/fl', federatedRoutes);
 
 // Error Handling
 app.use(errorHandler);

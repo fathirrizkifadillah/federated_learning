@@ -10,6 +10,7 @@ import { useReadingTracker } from '@/hooks/use-reading-tracker';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import { getCategoryLabel } from '@/lib/categories';
+import { pushEncryptedAccountProfile } from '@/modules/e2ee';
 
 function parseCitation(raw: string): { text: string; url: string | null } {
   const urlMatch = raw.match(/(https?:\/\/[^\s]+)/);
@@ -26,7 +27,7 @@ export default function ArticleDetailPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const { lang, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -95,7 +96,10 @@ export default function ArticleDetailPage() {
   const tracker = useReadingTracker({
     articleId: article?.id || (article as any)?.article_id || 'pending',
     category: (article as any)?.category_slug || article?.category || 'ai',
+    language: (article as any)?.language || 'en',
     userId: user?.id || 'local-user-guest',
+    userEmail: user?.email,
+    authToken: token,
   });
 
   const persistListToggle = (storageKey: string, nextState: boolean) => {
@@ -133,6 +137,9 @@ export default function ArticleDetailPage() {
       tracker.recordExplicitFeedback('like');
     }
     persistListToggle(`fedsocial_liked_articles_${user.id}`, nextState);
+    if (token) {
+      void pushEncryptedAccountProfile({ id: user.id, email: user.email }, token);
+    }
   };
 
   const handleBookmark = () => {
@@ -146,6 +153,9 @@ export default function ArticleDetailPage() {
       tracker.recordExplicitFeedback('bookmark');
     }
     persistListToggle(`fedsocial_saved_articles_${user.id}`, nextState);
+    if (token) {
+      void pushEncryptedAccountProfile({ id: user.id, email: user.email }, token);
+    }
   };
 
   if (loading) {

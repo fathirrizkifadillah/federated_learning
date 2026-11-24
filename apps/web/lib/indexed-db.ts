@@ -2,9 +2,22 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { LocalEvent } from '@fedsocial/shared-types';
 import { normalizeCategorySlug } from './categories';
 
+export const USER_EMBEDDING_DIM = 16;
+
+export function createInitialUserEmbedding(): number[] {
+  return Array.from({ length: USER_EMBEDDING_DIM }, (_, idx) =>
+    Number((0.05 * Math.cos((idx + 1) * 0.5)).toFixed(5))
+  );
+}
+
 export interface LocalUserProfile {
   userId: string;
-  topicWeights: Record<string, number>; // e.g. { ai: 0.8, sports: 0.1, history: 0.1 }
+  topicWeights: Record<string, number>;      // e.g. { ai: 0.8, sports: 0.1, history: 0.1 }
+  languageWeights?: Record<string, number>;  // e.g. { id: 0.72, en: 0.28 }
+  userEmbedding?: number[];                  // 16-d private user latent factor (never sent raw to server)
+  localRoundCount?: number;
+  eventsSinceLastRound?: number;
+  e2eeSyncVersion?: number;
   lastUpdated: number;
   totalInteractions: number;
 }
@@ -122,12 +135,24 @@ export async function recordLocalEvent(event: LocalEvent): Promise<void> {
 async function updateLocalProfileOnline(event: LocalEvent): Promise<void> {
   const db = await getEdgeDB();
   const userId = event.userId || event.local_user_key || 'local-user-guest';
-  const existingProfile = (await db.get('local_profile', userId)) || {
+  const existingProfile: LocalUserProfile = (await db.get('local_profile', userId)) || {
     userId,
-    topicWeights: { ai: 0.33, sports: 0.33, history: 0.33 },
+    topicWeights: { ai: 0.3333, sports: 0.3333, history: 0.3334 },
+    languageWeights: { id: 0.5, en: 0.5 },
+    userEmbedding: createInitialUserEmbedding(),
+    localRoundCount: 0,
+    eventsSinceLastRound: 0,
+    e2eeSyncVersion: 0,
     lastUpdated: Date.now(),
     totalInteractions: 0,
   };
+
+  if (!existingProfile.languageWeights) {
+    existingProfile.languageWeights = { id: 0.5, en: 0.5 };
+  }
+  if (!existingProfile.userEmbedding || existingProfile.userEmbedding.length !== USER_EMBEDDING_DIM) {
+    existingProfile.userEmbedding = createInitialUserEmbedding();
+  }
 
   const duration = event.durationMs || event.duration_ms || 0;
   const evType = event.eventType || event.event_type;
@@ -155,9 +180,40 @@ async function updateLocalProfileOnline(event: LocalEvent): Promise<void> {
     }
   }
 
+  // Update bilingual language preference weights (id vs en) strictly on-device
+  const rawLang = ((event.metadata?.language as string) || '').toLowerCase();
+  if (rawLang === 'id' || rawLang === 'en') {
+    existingProfile.languageWeights[rawLang] =
+      (existingProfile.languageWeights[rawLang] ?? 0.5) + Math.max(signalWeight, 0.2) * 0.1;
+    const langSum =
+      (existingProfile.languageWeights.id ?? 0.5) + (existingProfile.languageWeights.en ?? 0.5);
+    if (langSum > 0) {
+      existingProfile.languageWeights.id = parseFloat(
+        ((existingProfile.languageWeights.id ?? 0.5) / langSum).toFixed(4)
+      );
+      existingProfile.languageWeights.en = parseFloat(
+        ((existingProfile.languageWeights.en ?? 0.5) / langSum).toFixed(4)
+      );
+    }
+  }
+
   existingProfile.totalInteractions += 1;
+  existingProfile.eventsSinceLastRound = (existingProfile.eventsSinceLastRound || 0) + 1;
   existingProfile.lastUpdated = Date.now();
   await db.put('local_profile', existingProfile);
+}
+
+export async function saveLocalProfile(profile: LocalUserProfile): Promise<void> {
+  const db = await getEdgeDB();
+  await db.put('local_profile', profile);
+}
+
+export async function getUserLocalEvents(userId: string, limit = 100): Promise<LocalEvent[]> {
+  const db = await getEdgeDB();
+  const events = await db.getAllFromIndex('events', 'by-user', userId);
+  return events
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    .slice(-limit);
 }
 
 export async function getLocalEvents(limit = 100): Promise<LocalEvent[]> {
