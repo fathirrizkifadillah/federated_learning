@@ -25,7 +25,8 @@ echo "[3/6] Generating Prisma client & syncing schema..."
 npm run db:generate --workspace=apps/api
 (cd apps/api && npx prisma db push --skip-generate)
 
-echo "[4/6] Building Express API & Next.js Web..."
+echo "[4/6] Building shared-types, Express API & Next.js Web..."
+npm run build --workspace=packages/shared-types
 npm run build:api
 npm run build:web
 
