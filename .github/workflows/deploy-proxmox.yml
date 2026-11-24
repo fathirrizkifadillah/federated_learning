@@ -1,0 +1,29 @@
+name: CD — Auto-Deploy to Proxmox VM
+
+on:
+  workflow_run:
+    workflows: ["CI — Build, Typecheck & ML Privacy Tests"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-proxmox-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Proxmox VM (PM2)
+    # Opt-in guard: set GitHub Repository Variable ENABLE_PROXMOX_CD=true after installing the self-hosted runner on Proxmox.
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.workflow_run.conclusion == 'success' && vars.ENABLE_PROXMOX_CD == 'true')
+    runs-on: [self-hosted, linux, proxmox]
+
+    steps:
+      - name: Run idempotent deploy script on Proxmox VM
+        env:
+          APP_DIR: ${{ vars.PROXMOX_APP_DIR || '/home/fathir/fedsocial' }}
+        run: |
+          cd "$APP_DIR"
+          bash scripts/deploy.sh

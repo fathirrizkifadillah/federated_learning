@@ -123,13 +123,31 @@ Saat dosen atau teman-teman membuka `https://fedsocial.domaintemen.com` dan memb
 
 ---
 
-## 7. Update Kode Cepat di Masa Depan
+## 7. Auto-Deploy CI/CD (Setiap `git push` Otomatis Update di Proxmox)
 
+Repo ini sudah dilengkapi 2 GitHub Actions workflow:
+- **CI (`.github/workflows/ci.yml`)** — Otomatis jalan di server GitHub setiap `git push` ke `main` (build API, type-check & build Next.js, + `pytest ml/tests`).
+- **CD (`.github/workflows/deploy-proxmox.yml`)** — Otomatis menjalankan `scripts/deploy.sh` di VM Proxmox setelah CI lulus, **tanpa perlu membuka port SSH publik** (pakai GitHub Self-Hosted Runner yang konek keluar via HTTPS).
+
+### Cara Mengaktifkan Auto-Deploy di VM Proxmox (Sekali Saja, ~3 Menit):
+1. Buka repo GitHub kamu → **Settings → Actions → Runners → New self-hosted runner → Linux (x64)**.
+2. Jalankan perintah download & `./config.sh` yang tampil di GitHub di dalam VM Proxmox. Saat ditanya **additional labels**, tambahkan label:
+   ```text
+   proxmox
+   ```
+3. Pasang runner sebagai service background agar tetap jalan walau VM restart:
+   ```bash
+   sudo ./svc.sh install
+   sudo ./svc.sh start
+   ```
+4. Buka repo GitHub → **Settings → Secrets and variables → Actions → Variables → New repository variable**:
+   - `ENABLE_PROXMOX_CD` = `true`
+   - `PROXMOX_APP_DIR` = `/home/<user-vm>/fedsocial` *(sesuaikan dengan path folder repo di VM kamu)*
+
+Selesai! Setelah itu, setiap kamu `git push` ke `main`, GitHub akan otomatis mengetes kode lalu VM Proxmox otomatis pull, build, dan reload PM2 sendiri.
+
+### Update Manual Cepat (Kalau Tanpa Runner)
 ```bash
 cd ~/fedsocial
-git pull
-npm install
-npm run build:api
-npm run build:web
-pm2 restart all
+bash scripts/deploy.sh
 ```
