@@ -21,7 +21,7 @@ git pull --ff-only origin main
 echo "[2/6] Installing Node workspace dependencies..."
 npm ci --no-audit --no-fund
 
-echo "[3/6] Generating Prisma client, syncing schema & ensuring 10k bilingual catalog..."
+echo "[3/6] Generating Prisma client, syncing schema & ensuring verified real bilingual catalog..."
 npm run db:generate --workspace=apps/api
 (cd apps/api && npx prisma db push --skip-generate && npx tsx prisma/seed.ts)
 
